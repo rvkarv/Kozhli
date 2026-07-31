@@ -1,0 +1,12 @@
+<!--
+  Merge these into android/app/src/main/AndroidManifest.xml if building
+  manually with `flutter create .` on your own machine. If you're using
+  the automated .github/workflows/build-apk.yml instead, this is
+  already handled for you automatically — no action needed.
+-->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.INTERNET"/>
+
+<!-- Only needed if you wire up SMS OTP activation (see README licensing section) -->
+<!-- <uses-permission android:name="android.permission.RECEIVE_SMS"/> -->

@@ -1,0 +1,45 @@
+name: panchapakshi_kozhi
+description: >
+  Real-time கோழி (Hen) Panchapakshi Sastra calculation app.
+  Master engine app — first of 5 Panchapakshi apps
+  (கோழி, ஆந்தை, காகம், மயில், வல்லூறு).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # Location
+  geolocator: ^11.0.0          # GPS latitude/longitude
+  geocoding: ^3.0.0            # Manual place search -> lat/lng
+  permission_handler: ^11.3.0  # Runtime location permission
+
+  # State + storage
+  provider: ^6.1.2
+  shared_preferences: ^2.2.2   # Cache last location for offline use
+  sqflite: ^2.3.3              # Offline DB (Nakshatra/rule tables, history)
+  path: ^1.9.0
+
+  # Networking (optional reverse-geocode / sunrise API fallback)
+  http: ^1.2.1
+
+  # Licensing / device-binding (see ACTIVATION.md)
+  firebase_core: ^3.1.0
+  cloud_functions: ^5.0.0
+  device_info_plus: ^10.1.0
+
+  # Formatting
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

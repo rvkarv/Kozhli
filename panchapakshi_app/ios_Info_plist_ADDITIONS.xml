@@ -1,0 +1,8 @@
+<!--
+  Merge these keys into ios/Runner/Info.plist after running
+  `flutter create .` (see README step 1).
+-->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>கோழி பட்சி உங்கள் இருப்பிடத்தை பயன்படுத்தி சூரிய உதயம்/அஸ்தமனம் கணக்கிடுகிறது. This app uses your location to calculate accurate sunrise/sunset for the Panchapakshi engine.</string>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>Location is used only to compute sunrise/sunset for your area.</string>
