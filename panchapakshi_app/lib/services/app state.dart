@@ -70,7 +70,7 @@ class AppState extends ChangeNotifier {
 
   void _startTicking() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _recompute());
+    ticker = Timer.periodic(const Duration(seconds: 1), () => _recompute());
   }
 
   void _recompute() {
