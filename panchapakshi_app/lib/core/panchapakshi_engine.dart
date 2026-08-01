@@ -29,7 +29,8 @@ class PanchapakshiEngine {
       periodEnd = sunset;
       rulingWeekday = sunrise.weekday;
     } else if (isBeforeTodaySunrise) {
-      final prevSunset = previousSunset ?? sunset.subtract(const Duration(hours: 24));
+      final prevSunset =
+          previousSunset ?? sunset.subtract(const Duration(hours: 24));
       periodStart = prevSunset;
       periodEnd = sunrise;
       rulingWeekday = sunrise.subtract(const Duration(days: 1)).weekday;
@@ -40,23 +41,24 @@ class PanchapakshiEngine {
     }
 
     final periodLength = periodEnd.difference(periodStart);
-    final jamamDuration = Duration(microseconds: periodLength.inMicroseconds ~/ 5);
-
+    final jamamDuration =
+        Duration(microseconds: periodLength.inMicroseconds ~/ 5);
     final elapsed = nowLocal.difference(periodStart);
-    var jamamIndex = (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
+    var jamamIndex =
+        (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
     jamamIndex = jamamIndex.clamp(0, 4);
     final jamam = jamamIndex + 1;
-
     final jamamStart = periodStart.add(jamamDuration * jamamIndex);
     final jamamEnd = jamamStart.add(jamamDuration);
 
-    final antharamDuration = Duration(microseconds: jamamDuration.inMicroseconds ~/ 5);
+    final antharamDuration =
+        Duration(microseconds: jamamDuration.inMicroseconds ~/ 5);
     final elapsedInJamam = nowLocal.difference(jamamStart);
     var antharamIndex =
-        (elapsedInJamam.inMicroseconds / antharamDuration.inMicroseconds).floor();
+        (elapsedInJamam.inMicroseconds / antharamDuration.inMicroseconds)
+            .floor();
     antharamIndex = antharamIndex.clamp(0, 4);
     final antharam = antharamIndex + 1;
-
     final antharamStart = jamamStart.add(antharamDuration * antharamIndex);
     final antharamEnd = antharamStart.add(antharamDuration);
 
@@ -70,7 +72,9 @@ class PanchapakshiEngine {
 
     final birdCycle = PanchapakshiRules.birdOrder;
     final startBirdIdx = birdCycle.indexOf(bird);
-    final antharamBird = birdCycle[(startBirdIdx + antharamIndex) % birdCycle.length];
+    final antharamBird =
+        birdCycle[(startBirdIdx + antharamIndex) % birdCycle.length];
+
     final antharamActivity = PanchapakshiRules.activityFor(
       bird: antharamBird,
       jamam: jamam,
@@ -83,6 +87,7 @@ class PanchapakshiEngine {
 
     Thozhil nextActivity;
     DateTime nextActivityStart;
+
     if (antharamIndex < 4) {
       final nextBird = birdCycle[(startBirdIdx + antharamIndex + 1) % 5];
       nextActivity = PanchapakshiRules.activityFor(
