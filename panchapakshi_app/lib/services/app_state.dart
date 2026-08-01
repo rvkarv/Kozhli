@@ -1,17 +1,29 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
+import '../core/nakshatra_calculator.dart';
 import '../core/panchapakshi_engine.dart';
+import '../core/thaarai_calculator.dart';
 import '../models/pakshi.dart';
 import '../models/panchapakshi_state.dart';
 import '../services/location_service.dart';
 
-/// Holds the selected location + selected bird, and republishes a fresh
-/// [PanchapakshiState] every second. UI widgets listen via Provider.
 class AppState extends ChangeNotifier {
   ResolvedLocation? location;
-  Pakshi bird = Pakshi.kozhi; // Master app = கோழி
+  Pakshi bird = Pakshi.kozhi;
   PanchapakshiState? state;
+
+  // Manual: set once via BirthDetailsScreen.
+  String? birthNakshatra;
+
+  // Automatic: recalculated every tick from real Moon position.
+  MoonPosition? currentMoon;
+
+  ThaaraiResult? get thaarai => ThaaraiCalculator.compute(
+        birthNakshatra: birthNakshatra,
+        todayNakshatra: currentMoon?.nakshatraName,
+      );
+
   String? error;
   bool loading = false;
 
@@ -51,6 +63,11 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void setBirthNakshatra(String star) {
+    birthNakshatra = star;
+    notifyListeners();
+  }
+
   void _startTicking() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _recompute());
@@ -59,17 +76,29 @@ class AppState extends ChangeNotifier {
   void _recompute() {
     final loc = location;
     if (loc == null) return;
-    final now = DateTime.now();
-    final window = LocationService.buildDayWindow(date: now, lat: loc.lat, lng: loc.lng);
+
+    final offset = LocationService.locationOffset(loc.lng);
+    final nowUtc = DateTime.now().toUtc();
+    final nowAtLocation = nowUtc.add(offset);
+
+    final window = LocationService.buildDayWindow(
+      nowAtLocation: nowAtLocation,
+      lat: loc.lat,
+      lng: loc.lng,
+    );
 
     state = PanchapakshiEngine.compute(
       bird: bird,
-      nowLocal: now,
+      nowLocal: nowAtLocation,
+      nowUtc: nowUtc,
       sunrise: window.sunrise,
       sunset: window.sunset,
       nextSunrise: window.nextSunrise,
       previousSunset: window.previousSunset,
     );
+
+    currentMoon = NakshatraCalculator.computeCurrent(nowUtc);
+
     notifyListeners();
   }
 
