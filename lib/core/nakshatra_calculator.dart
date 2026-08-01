@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'panchapakshi_rules.dart';
 
 /// Real astronomical calculation of the Moon's current sidereal
@@ -16,6 +17,7 @@ class MoonPosition {
   final int rasiIndex1to12;
   final String rasiName;
   final bool isWaxing;
+
   const MoonPosition({
     required this.nakshatraIndex1to27,
     required this.nakshatraName,
@@ -74,7 +76,8 @@ class NakshatraCalculator {
     // --- Sun (needed for eccentricity-of-Earth correction + Paksha) ---
     final meanAnomSun = 357.52911 + t * (35999.05029 - 0.0001537 * t);
     final eccentEarth = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
-    final geomMeanLongSun = _mod360(280.46646 + t * (36000.76983 + t * 0.0003032));
+    final geomMeanLongSun =
+        _mod360(280.46646 + t * (36000.76983 + t * 0.0003032));
     final sunEqCtr = math.sin(_rad(meanAnomSun)) *
             (1.914602 - t * (0.004817 + 0.000014 * t)) +
         math.sin(_rad(2 * meanAnomSun)) * (0.019993 - 0.000101 * t) +
@@ -89,16 +92,19 @@ class NakshatraCalculator {
         0.0015786 * t * t +
         math.pow(t, 3) / 538841 -
         math.pow(t, 4) / 65194000);
+
     final meanElongMoon = _mod360(297.8501921 +
         445267.1114034 * t -
         0.0018819 * t * t +
         math.pow(t, 3) / 545868 -
         math.pow(t, 4) / 113065000);
+
     final moonMeanAnom = _mod360(134.9633964 +
         477198.8675055 * t +
         0.0087414 * t * t +
         math.pow(t, 3) / 69699 -
         math.pow(t, 4) / 14712000);
+
     final moonArgLat = _mod360(93.272095 +
         483202.0175233 * t -
         0.0036539 * t * t -
