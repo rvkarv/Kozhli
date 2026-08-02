@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../core/panchapakshi_rules.dart';
+import '../core/thaarai_calculator.dart';
 import '../models/pakshi.dart';
 import '../services/app_state.dart';
 import '../widgets/activity_card.dart';
@@ -34,6 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final app = context.watch<AppState>();
     final s = app.state;
     final timeFmt = DateFormat('hh:mm:ss a');
+
+    final gowriSlot =
+        s != null ? PanchapakshiRules.gowriSlotFor(s.asOf) : null;
+    final horaiSlot =
+        s != null ? PanchapakshiRules.horaiSlotFor(s.asOf) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -113,17 +120,60 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _InfoTile(
                         title: 'கௌரி',
-                        value: s.gowriName,
+                        value: gowriSlot?.label ?? s.gowriName,
                         good: s.gowriIsGood,
+                        subtitle: gowriSlot == null
+                            ? null
+                            : '${timeFmt.format(gowriSlot.start)} – ${timeFmt.format(gowriSlot.end)}',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _InfoTile(title: 'ஓரை (Horai)', value: s.horaiPlanet),
+                      child: _InfoTile(
+                        title: 'ஓரை (Horai)',
+                        value: horaiSlot?.planet ?? s.horaiPlanet,
+                        subtitle: horaiSlot == null
+                            ? null
+                            : '${timeFmt.format(horaiSlot.start)} – ${timeFmt.format(horaiSlot.end)}',
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
+
+                // ---- தாராபலம் (Thaarai) ----
+                if (app.thaaraiFromRasi != null || app.thaaraiFromLagna != null) ...[
+                  Text('தாராபலம் (Thaarai)',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  if (app.thaaraiFromRasi != null)
+                    _ThaaraiCard(
+                      label: 'பிறந்த ராசி நட்சத்திரத்திற்கு',
+                      result: app.thaaraiFromRasi!,
+                    ),
+                  if (app.thaaraiFromRasi != null && app.thaaraiFromLagna != null)
+                    const SizedBox(height: 8),
+                  if (app.thaaraiFromLagna != null)
+                    _ThaaraiCard(
+                      label: 'பிறந்த லக்னம் நட்சத்திரத்திற்கு',
+                      result: app.thaaraiFromLagna!,
+                    ),
+                  const SizedBox(height: 20),
+                ] else if (app.birthNakshatra == null) ...[
+                  Card(
+                    color: Colors.amber.withOpacity(0.1),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'தாராபலம் காண பிறந்த விவரங்களை உள்ளிடவும் (Set your '
+                        'birth details to see Thaarai).',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -187,7 +237,13 @@ class _InfoTile extends StatelessWidget {
   final String title;
   final String value;
   final bool? good;
-  const _InfoTile({required this.title, required this.value, this.good});
+  final String? subtitle;
+  const _InfoTile({
+    required this.title,
+    required this.value,
+    this.good,
+    this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -204,6 +260,36 @@ class _InfoTile extends StatelessWidget {
             Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
             Text(value,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThaaraiCard extends StatelessWidget {
+  final String label;
+  final ThaaraiResult result;
+  const _ThaaraiCard({required this.label, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 4),
+            Text(result.category.tamil,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text(result.category.effect, style: const TextStyle(fontSize: 13)),
           ],
         ),
       ),
