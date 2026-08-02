@@ -164,6 +164,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+String? birthLagnaNakshatra; // add alongside birthNakshatra
+
+  ThaaraiResult? get thaaraiLagna => ThaaraiCalculator.compute(
+        birthNakshatra: birthLagnaNakshatra,
+        todayNakshatra: currentMoon?.nakshatraName,
+      );
+
+  void setBirthLagnaNakshatra(String star) {
+    birthLagnaNakshatra = star;
+    notifyListeners();
+  }
+  
   @override
   void dispose() {
     _ticker?.cancel();
