@@ -5,6 +5,20 @@ import '../models/pakshi.dart';
 ///
 /// Bird column order used throughout this file (matches the workbook):
 /// [வல்லூறு, ஆந்தை, காகம், கோழி, மயில்]
+class GowriSlot {
+  final String label;
+  final DateTime start;
+  final DateTime end;
+  const GowriSlot(this.label, this.start, this.end);
+}
+
+class HoraiSlot {
+  final String planet;
+  final DateTime start;
+  final DateTime end;
+  const HoraiSlot(this.planet, this.start, this.end);
+}
+
 class PanchapakshiRules {
   static const List<Pakshi> birdOrder = [
     Pakshi.vallooru,
@@ -320,6 +334,23 @@ class PanchapakshiRules {
     ['லாபம்', 'தனம்', 'சுகம்', 'விஷம்', 'உத்தி', 'அமிர்', 'ரோகம்'],
   ];
 
+  /// Returns the Gowri slot (label + its real start/end DateTime) that
+  /// [instant] falls inside. Slots are fixed 90-minute blocks on the
+  /// standard 24-hour clock starting at 06:00 (NOT sun-adjusted).
+  static GowriSlot gowriSlotFor(DateTime instant) {
+    var dayAnchor = DateTime(instant.year, instant.month, instant.day, 6);
+    if (instant.isBefore(dayAnchor)) {
+      dayAnchor = dayAnchor.subtract(const Duration(days: 1));
+    }
+    final elapsedMinutes = instant.difference(dayAnchor).inMinutes;
+    final slotIndex = (elapsedMinutes ~/ 90).clamp(0, 15);
+    final slotStart = dayAnchor.add(Duration(minutes: 90 * slotIndex));
+    final slotEnd = slotStart.add(const Duration(minutes: 90));
+    // DateTime.weekday: Mon=1..Sun=7 -> convert to 0=Sun..6=Sat
+    final weekdayIdx = slotStart.weekday % 7;
+    return GowriSlot(gowriTable[slotIndex][weekdayIdx], slotStart, slotEnd);
+  }
+
   // ---------------------------------------------------------------------
   // Horai — hourly planetary lord, fixed clock (06:00 start), cycles
   // through a fixed 7-planet order offset per weekday.
@@ -330,4 +361,22 @@ class PanchapakshiRules {
   // Starting planet index (into horaiPlanetCycle) for hour-0 (06:00-07:00)
   // by weekday, 0=Sun..6=Sat.
   static const List<int> horaiStartIndexByWeekday = [0, 3, 6, 2, 5, 1, 4];
+
+  /// Returns the Horai slot (planet + its real start/end DateTime) that
+  /// [instant] falls inside. Slots are fixed 1-hour blocks on the
+  /// standard 24-hour clock starting at 06:00 (NOT sun-adjusted).
+  static HoraiSlot horaiSlotFor(DateTime instant) {
+    var dayAnchor = DateTime(instant.year, instant.month, instant.day, 6);
+    if (instant.isBefore(dayAnchor)) {
+      dayAnchor = dayAnchor.subtract(const Duration(days: 1));
+    }
+    final elapsedHours = instant.difference(dayAnchor).inHours;
+    final hourIndex = elapsedHours.clamp(0, 23);
+    final slotStart = dayAnchor.add(Duration(hours: hourIndex));
+    final slotEnd = slotStart.add(const Duration(hours: 1));
+    final weekdayIdx = slotStart.weekday % 7;
+    final startIdx = horaiStartIndexByWeekday[weekdayIdx];
+    final planet = horaiPlanetCycle[(startIdx + hourIndex) % 7];
+    return HoraiSlot(planet, slotStart, slotEnd);
+  }
 }
