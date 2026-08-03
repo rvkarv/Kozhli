@@ -29,8 +29,7 @@ class PanchapakshiEngine {
       periodEnd = sunset;
       rulingWeekday = sunrise.weekday;
     } else if (isBeforeTodaySunrise) {
-      final prevSunset =
-          previousSunset ?? sunset.subtract(const Duration(hours: 24));
+      final prevSunset = previousSunset ?? sunset.subtract(const Duration(hours: 24));
       periodStart = prevSunset;
       periodEnd = sunrise;
       rulingWeekday = sunrise.subtract(const Duration(days: 1)).weekday;
@@ -41,26 +40,15 @@ class PanchapakshiEngine {
     }
 
     final periodLength = periodEnd.difference(periodStart);
-    final jamamDuration =
-        Duration(microseconds: periodLength.inMicroseconds ~/ 5);
+    final jamamDuration = Duration(microseconds: periodLength.inMicroseconds ~/ 5);
+
     final elapsed = nowLocal.difference(periodStart);
-    var jamamIndex =
-        (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
+    var jamamIndex = (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
     jamamIndex = jamamIndex.clamp(0, 4);
     final jamam = jamamIndex + 1;
+
     final jamamStart = periodStart.add(jamamDuration * jamamIndex);
     final jamamEnd = jamamStart.add(jamamDuration);
-
-    final antharamDuration =
-        Duration(microseconds: jamamDuration.inMicroseconds ~/ 5);
-    final elapsedInJamam = nowLocal.difference(jamamStart);
-    var antharamIndex =
-        (elapsedInJamam.inMicroseconds / antharamDuration.inMicroseconds)
-            .floor();
-    antharamIndex = antharamIndex.clamp(0, 4);
-    final antharam = antharamIndex + 1;
-    final antharamStart = jamamStart.add(antharamDuration * antharamIndex);
-    final antharamEnd = antharamStart.add(antharamDuration);
 
     final jamamActivity = PanchapakshiRules.activityFor(
       bird: bird,
@@ -72,43 +60,70 @@ class PanchapakshiEngine {
 
     final birdCycle = PanchapakshiRules.birdOrder;
     final startBirdIdx = birdCycle.indexOf(bird);
-    final antharamBird =
-        birdCycle[(startBirdIdx + antharamIndex) % birdCycle.length];
+    final antharamBirds = List.generate(5, (i) => birdCycle[(startBirdIdx + i) % 5]);
+    final antharamActivities = antharamBirds
+        .map((b) => PanchapakshiRules.activityFor(
+              bird: b,
+              jamam: jamam,
+              paksham: paksham,
+              dayNight: dayNight,
+              dateTimeWeekday: rulingWeekday,
+            ))
+        .toList();
 
-    final antharamActivity = PanchapakshiRules.activityFor(
-      bird: antharamBird,
-      jamam: jamam,
-      paksham: paksham,
-      dayNight: dayNight,
-      dateTimeWeekday: rulingWeekday,
-    );
+    final weightTable = PanchapakshiRules.minutesTableFor(paksham, dayNight);
+    final weights = antharamActivities.map((t) => weightTable[t.tamil]!.toDouble()).toList();
+    final totalWeight = weights.reduce((a, b) => a + b);
+
+    final antharamDurations = weights
+        .map((w) => Duration(
+            microseconds: (jamamDuration.inMicroseconds * w / totalWeight).round()))
+        .toList();
+
+    var cumulative = Duration.zero;
+    var antharamIndex = 4;
+    var antharamStart = jamamStart;
+    for (var i = 0; i < 5; i++) {
+      final start = jamamStart.add(cumulative);
+      final end = start.add(antharamDurations[i]);
+      if (nowLocal.isBefore(end) || i == 4) {
+        antharamIndex = i;
+        antharamStart = start;
+        break;
+      }
+      cumulative += antharamDurations[i];
+    }
+    final antharamEnd = antharamStart.add(antharamDurations[antharamIndex]);
+    final antharam = antharamIndex + 1;
+    final antharamBird = antharamBirds[antharamIndex];
+    final antharamActivity = antharamActivities[antharamIndex];
 
     final remaining = antharamEnd.difference(nowLocal);
 
     Thozhil nextActivity;
     DateTime nextActivityStart;
-
+    Pakshi nextAntharamBird;
     if (antharamIndex < 4) {
-      final nextBird = birdCycle[(startBirdIdx + antharamIndex + 1) % 5];
-      nextActivity = PanchapakshiRules.activityFor(
-        bird: nextBird,
-        jamam: jamam,
-        paksham: paksham,
-        dayNight: dayNight,
-        dateTimeWeekday: rulingWeekday,
-      );
+      nextAntharamBird = antharamBirds[antharamIndex + 1];
+      nextActivity = antharamActivities[antharamIndex + 1];
       nextActivityStart = antharamEnd;
     } else if (jamamIndex < 4) {
-      nextActivity = PanchapakshiRules.activityFor(
-        bird: bird,
-        jamam: jamam + 1,
-        paksham: paksham,
-        dayNight: dayNight,
-        dateTimeWeekday: rulingWeekday,
-      );
+      final nextJamamBirds = List.generate(5, (i) => birdCycle[(startBirdIdx + i) % 5]);
+      final nextJamamActivities = nextJamamBirds
+          .map((b) => PanchapakshiRules.activityFor(
+                bird: b,
+                jamam: jamam + 1,
+                paksham: paksham,
+                dayNight: dayNight,
+                dateTimeWeekday: rulingWeekday,
+              ))
+          .toList();
+      nextAntharamBird = nextJamamBirds[0];
+      nextActivity = nextJamamActivities[0];
       nextActivityStart = jamamEnd;
     } else {
       final flippedDayNight = isDay ? DayNight.night : DayNight.day;
+      nextAntharamBird = bird;
       nextActivity = PanchapakshiRules.activityFor(
         bird: bird,
         jamam: 1,
@@ -142,6 +157,7 @@ class PanchapakshiEngine {
       remaining: remaining,
       nextActivity: nextActivity,
       nextActivityStart: nextActivityStart,
+      nextAntharamBird: nextAntharamBird,
       gowriName: gowri.name,
       gowriIsGood: gowri.isGood,
       horaiPlanet: horai,
