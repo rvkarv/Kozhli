@@ -1,6 +1,5 @@
 import 'pakshi.dart';
 
-/// One fully-computed real-time snapshot for the selected bird/location.
 class PanchapakshiState {
   final DateTime asOf;
   final Pakshi bird;
@@ -9,22 +8,23 @@ class PanchapakshiState {
 
   final DateTime sunrise;
   final DateTime sunset;
-  final DateTime nextSunrise; // for night-jamam math
+  final DateTime nextSunrise;
 
-  final int jamam; // 1..5
+  final int jamam;
   final Thozhil jamamActivity;
   final DateTime jamamStart;
   final DateTime jamamEnd;
 
-  final int antharam; // 1..5 (sub-division of the jamam)
-  final Pakshi antharamBird; // the "guest" bird active this antharam
+  final int antharam;
+  final Pakshi antharamBird;
   final Thozhil antharamActivity;
   final DateTime antharamStart;
   final DateTime antharamEnd;
 
-  final Duration remaining; // time left in current antharam
+  final Duration remaining;
   final Thozhil nextActivity;
   final DateTime nextActivityStart;
+  final Pakshi nextAntharamBird;
 
   final String gowriName;
   final bool gowriIsGood;
@@ -50,6 +50,7 @@ class PanchapakshiState {
     required this.remaining,
     required this.nextActivity,
     required this.nextActivityStart,
+    required this.nextAntharamBird,
     required this.gowriName,
     required this.gowriIsGood,
     required this.horaiPlanet,
