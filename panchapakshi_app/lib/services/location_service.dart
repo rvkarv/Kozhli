@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/sun_calculator.dart';
 
 class ResolvedLocation {
-  final String label; // "Village, District, Country" etc.
+  final String label;
   final double lat;
   final double lng;
   const ResolvedLocation({required this.label, required this.lat, required this.lng});
@@ -34,7 +34,6 @@ class DayWindow {
 class LocationService {
   static const _prefsKey = 'panchapakshi_last_location';
 
-  /// GPS: current device location. Throws if permission denied.
   static Future<ResolvedLocation> getGpsLocation() async {
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -62,7 +61,6 @@ class LocationService {
             .join(', ');
       }
     } catch (_) {
-      // Reverse geocoding is best-effort; fall back to raw lat/lng label.
       label = '${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)}';
     }
 
@@ -71,10 +69,6 @@ class LocationService {
     return loc;
   }
 
-  /// Manual search: Village / Town / City / District / Country free text.
-  /// Uses platform geocoding (falls back cleanly if the plugin's native
-  /// backend needs a Google Maps API key configured per-platform — see
-  /// README "Google Maps API key setup").
   static Future<List<ResolvedLocation>> searchPlace(String query) async {
     final locations = await locationFromAddress(query);
     final results = <ResolvedLocation>[];
@@ -87,7 +81,7 @@ class LocationService {
           final p = placemarks.first;
           label = [p.locality, p.subAdministrativeArea, p.administrativeArea, p.country]
               .where((s) => s != null && s.isNotEmpty)
-              .toSet() // drop dup segments
+              .toSet()
               .join(', ');
         }
       } catch (_) {}
@@ -108,8 +102,7 @@ class LocationService {
     return _decode(raw);
   }
 
-  static String _encode(ResolvedLocation l) =>
-      '${l.label}|${l.lat}|${l.lng}';
+  static String _encode(ResolvedLocation l) => '${l.label}|${l.lat}|${l.lng}';
   static ResolvedLocation? _decode(String raw) {
     final parts = raw.split('|');
     if (parts.length != 3) return null;
@@ -120,36 +113,39 @@ class LocationService {
     );
   }
 
-  /// Builds the sunrise/sunset/nextSunrise/previousSunset window needed
-  /// by [PanchapakshiEngine.compute] for [date] at [lat]/[lng].
-  ///
-  /// NOTE ON TIME ZONES: SunCalculator returns UTC instants. This method
-  /// converts them to the DEVICE's local time zone via .toLocal(). That
-  /// is correct as long as the device's system time zone matches the
-  /// selected place (true for GPS mode). For manual search of a place in
-  /// a *different* time zone than the device, plug in a timezone lookup
-  /// (e.g. the `timezone` + `flutter_timezone` packages keyed off
-  /// lat/lng) before calling .toLocal() — flagged here so it isn't missed.
+  /// Approximate local UTC offset for a place based on its longitude
+  /// (15 degrees = 1 hour), rounded to the nearest whole hour.
+  static Duration locationOffset(double lng) {
+    final hours = (lng / 15).round();
+    return Duration(hours: hours);
+  }
+
+  /// [nowAtLocation] must already be shifted into the target location's
+  /// approximate local time (see AppState._recompute) so the correct
+  /// CALENDAR DAY is used for sunrise/sunset lookup.
   static DayWindow buildDayWindow({
-    required DateTime date,
+    required DateTime nowAtLocation,
     required double lat,
     required double lng,
   }) {
-    final today = SunCalculator.calculate(date: date, lat: lat, lng: lng);
+    final offset = locationOffset(lng);
+    final today = SunCalculator.calculate(date: nowAtLocation, lat: lat, lng: lng);
     final yesterday = SunCalculator.calculate(
-        date: date.subtract(const Duration(days: 1)), lat: lat, lng: lng);
+        date: nowAtLocation.subtract(const Duration(days: 1)), lat: lat, lng: lng);
     final tomorrow = SunCalculator.calculate(
-        date: date.add(const Duration(days: 1)), lat: lat, lng: lng);
+        date: nowAtLocation.add(const Duration(days: 1)), lat: lat, lng: lng);
+
+    DateTime shift(DateTime? utc, DateTime fallbackUtc) => (utc ?? fallbackUtc).add(offset);
 
     return DayWindow(
-      sunrise: (today.sunrise ?? DateTime.utc(date.year, date.month, date.day, 6)).toLocal(),
-      sunset: (today.sunset ?? DateTime.utc(date.year, date.month, date.day, 18)).toLocal(),
-      nextSunrise: (tomorrow.sunrise ??
-              DateTime.utc(date.year, date.month, date.day + 1, 6))
-          .toLocal(),
-      previousSunset: (yesterday.sunset ??
-              DateTime.utc(date.year, date.month, date.day - 1, 18))
-          .toLocal(),
+      sunrise: shift(today.sunrise,
+          DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day, 6)),
+      sunset: shift(today.sunset,
+          DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day, 18)),
+      nextSunrise: shift(tomorrow.sunrise,
+          DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day + 1, 6)),
+      previousSunset: shift(yesterday.sunset,
+          DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day - 1, 18)),
     );
   }
 }
