@@ -161,7 +161,7 @@ class _DayCard extends StatelessWidget {
             Text(
               '${paksham == Paksham.valarpirai ? "வளர்பிறை" : "தேய்பிறை"} · '
               'சூரிய உதயம் ${timeFmt.format(window.sunrise)} · '
-              'அஸதமனம் ${timeFmt.format(window.sunset)}',
+              'அஸ்தமனம் ${timeFmt.format(window.sunset)}',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const Divider(),
