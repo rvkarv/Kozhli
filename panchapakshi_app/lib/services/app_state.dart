@@ -20,6 +20,12 @@ class AppState extends ChangeNotifier {
   // Automatic: recalculated every tick from real Moon position.
   MoonPosition? currentMoon;
 
+  // Future/Past prediction: when set, the dashboard freezes on this
+  // date/time (interpreted as the SELECTED PLACE's own local wall
+  // clock) instead of updating live. Null = live "now".
+  DateTime? overridePickedLocal;
+  bool get isLive => overridePickedLocal == null;
+
   ThaaraiResult? get thaarai => ThaaraiCalculator.compute(
         birthNakshatra: birthNakshatra,
         todayNakshatra: currentMoon?.nakshatraName,
@@ -79,6 +85,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [pickedLocal] is the date/time the user chose, interpreted as the
+  /// wall clock at the currently selected place. Pass null to return
+  /// to live "now" mode.
+  void setOverrideDateTime(DateTime? pickedLocal) {
+    overridePickedLocal = pickedLocal;
+    if (pickedLocal == null) {
+      _startTicking();
+    } else {
+      _ticker?.cancel();
+    }
+    _recompute();
+    notifyListeners();
+  }
+
   void _startTicking() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _recompute());
@@ -89,8 +109,19 @@ class AppState extends ChangeNotifier {
     if (loc == null) return;
 
     final offset = LocationService.locationOffset(loc.lng);
-    final nowUtc = DateTime.now().toUtc();
-    final nowAtLocation = nowUtc.add(offset);
+
+    late DateTime nowAtLocation;
+    late DateTime nowUtc;
+    final override = overridePickedLocal;
+    if (override != null) {
+      nowAtLocation = DateTime.utc(
+        override.year, override.month, override.day, override.hour, override.minute,
+      );
+      nowUtc = nowAtLocation.subtract(offset);
+    } else {
+      nowUtc = DateTime.now().toUtc();
+      nowAtLocation = nowUtc.add(offset);
+    }
 
     final window = LocationService.buildDayWindow(
       nowAtLocation: nowAtLocation,
