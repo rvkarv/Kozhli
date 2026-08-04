@@ -8,14 +8,13 @@ class ResolvedLocation {
   final String label;
   final double lat;
   final double lng;
-  const ResolvedLocation({required this.label, required this.lat, required this.lng});
-
-  Map<String, dynamic> toJson() => {'label': label, 'lat': lat, 'lng': lng};
-  factory ResolvedLocation.fromJson(Map<String, dynamic> j) => ResolvedLocation(
-        label: j['label'] as String,
-        lat: (j['lat'] as num).toDouble(),
-        lng: (j['lng'] as num).toDouble(),
-      );
+  final bool isDeviceLocal; // true = GPS (phone is physically here)
+  const ResolvedLocation({
+    required this.label,
+    required this.lat,
+    required this.lng,
+    this.isDeviceLocal = false,
+  });
 }
 
 class DayWindow {
@@ -64,7 +63,12 @@ class LocationService {
       label = '${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)}';
     }
 
-    final loc = ResolvedLocation(label: label, lat: pos.latitude, lng: pos.longitude);
+    final loc = ResolvedLocation(
+      label: label,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      isDeviceLocal: true,
+    );
     await _cache(loc);
     return loc;
   }
@@ -85,7 +89,12 @@ class LocationService {
               .join(', ');
         }
       } catch (_) {}
-      results.add(ResolvedLocation(label: label, lat: loc.latitude, lng: loc.longitude));
+      results.add(ResolvedLocation(
+        label: label,
+        lat: loc.latitude,
+        lng: loc.longitude,
+        isDeviceLocal: false,
+      ));
     }
     return results;
   }
@@ -102,33 +111,41 @@ class LocationService {
     return _decode(raw);
   }
 
-  static String _encode(ResolvedLocation l) => '${l.label}|${l.lat}|${l.lng}';
+  static String _encode(ResolvedLocation l) =>
+      '${l.label}|${l.lat}|${l.lng}|${l.isDeviceLocal}';
   static ResolvedLocation? _decode(String raw) {
     final parts = raw.split('|');
-    if (parts.length != 3) return null;
+    if (parts.length < 3) return null;
     return ResolvedLocation(
       label: parts[0],
       lat: double.tryParse(parts[1]) ?? 0,
       lng: double.tryParse(parts[2]) ?? 0,
+      isDeviceLocal: parts.length > 3 ? parts[3] == 'true' : false,
     );
   }
 
-  /// Approximate local UTC offset for a place based on its longitude
-  /// (15 degrees = 1 hour), rounded to the nearest whole hour.
+  /// Approximation used ONLY for manually-searched distant places (no
+  /// real timezone lookup available offline). 15 degrees ≈ 1 hour.
   static Duration locationOffset(double lng) {
     final hours = (lng / 15).round();
     return Duration(hours: hours);
   }
 
-  /// [nowAtLocation] must already be shifted into the target location's
-  /// approximate local time (see AppState._recompute) so the correct
-  /// CALENDAR DAY is used for sunrise/sunset lookup.
+  /// The offset actually used for calculations: the device's real,
+  /// exact timezone when GPS confirms the phone is physically there
+  /// (fixes the India +5:30 vs. rounded +5:00 bug) — falling back to
+  /// the longitude approximation only for manually searched places.
+  static Duration effectiveOffset(ResolvedLocation loc) {
+    return loc.isDeviceLocal ? DateTime.now().timeZoneOffset : locationOffset(loc.lng);
+  }
+
   static DayWindow buildDayWindow({
     required DateTime nowAtLocation,
     required double lat,
     required double lng,
+    Duration? offsetOverride,
   }) {
-    final offset = locationOffset(lng);
+    final offset = offsetOverride ?? locationOffset(lng);
     final today = SunCalculator.calculate(date: nowAtLocation, lat: lat, lng: lng);
     final yesterday = SunCalculator.calculate(
         date: nowAtLocation.subtract(const Duration(days: 1)), lat: lat, lng: lng);
