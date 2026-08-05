@@ -108,7 +108,7 @@ class AppState extends ChangeNotifier {
     final loc = location;
     if (loc == null) return;
 
-    final offset = LocationService.locationOffset(loc.lng);
+    final offset = LocationService.effectiveOffset(loc);
 
     late DateTime nowAtLocation;
     late DateTime nowUtc;
@@ -127,6 +127,7 @@ class AppState extends ChangeNotifier {
       nowAtLocation: nowAtLocation,
       lat: loc.lat,
       lng: loc.lng,
+      offsetOverride: offset,
     );
 
     state = PanchapakshiEngine.compute(
