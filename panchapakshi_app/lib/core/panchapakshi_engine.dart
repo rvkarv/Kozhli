@@ -58,6 +58,13 @@ class PanchapakshiEngine {
       dateTimeWeekday: rulingWeekday,
     );
 
+    // --- Antharam: standard-minute base PLUS a FLAT equal share of the
+    // difference between the real jamam length and the standard 2:24:00
+    // (144 min) jamam. This is NOT proportional scaling — every antharam
+    // gets the SAME extra offset, confirmed directly against the
+    // workbook's Main sheet formula (D6:D12, E8:E9, F8:F9):
+    //   extraPerAntharam = (actualJamamLength - 2:24:00) / 5
+    //   antharamDuration = tableWeightMinutes + extraPerAntharam
     final birdCycle = PanchapakshiRules.birdOrder;
     final startBirdIdx = birdCycle.indexOf(bird);
     final antharamBirds = List.generate(5, (i) => birdCycle[(startBirdIdx + i) % 5]);
@@ -72,13 +79,20 @@ class PanchapakshiEngine {
         .toList();
 
     final weightTable = PanchapakshiRules.minutesTableFor(paksham, dayNight);
-    final weights = antharamActivities.map((t) => weightTable[t.tamil]!.toDouble()).toList();
-    final totalWeight = weights.reduce((a, b) => a + b);
 
-    final antharamDurations = weights
-        .map((w) => Duration(
-            microseconds: (jamamDuration.inMicroseconds * w / totalWeight).round()))
-        .toList();
+    const standardJamam = Duration(minutes: 144); // 2:24:00, fixed reference
+    final extraTotal = jamamDuration - standardJamam;
+    final extraPerAntharam =
+        Duration(microseconds: extraTotal.inMicroseconds ~/ 5);
+    // Absorb any rounding remainder into the 5th antharam so the 5
+    // durations always sum EXACTLY to the real jamam length.
+    final roundingRemainder = extraTotal - (extraPerAntharam * 5);
+
+    final antharamDurations = List.generate(5, (i) {
+      final base = Duration(minutes: weightTable[antharamActivities[i].tamil]!);
+      final extra = i == 4 ? (extraPerAntharam + roundingRemainder) : extraPerAntharam;
+      return base + extra;
+    });
 
     var cumulative = Duration.zero;
     var antharamIndex = 4;
@@ -164,3 +178,4 @@ class PanchapakshiEngine {
     );
   }
 }
+
