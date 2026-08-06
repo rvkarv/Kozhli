@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../core/day_ruler_rules.dart';
 import '../core/moon_phase.dart';
 import '../core/panchapakshi_rules.dart';
 import '../models/pakshi.dart';
@@ -117,6 +118,7 @@ class _DayCard extends StatelessWidget {
       lng: lng,
     );
     final paksham = MoonPhase.paskhamFor(dateAtLocation.subtract(offset));
+    final dayRuler = DayRulerRules.forWeekday(window.sunrise.weekday, paksham);
 
     final dayLength = window.sunset.difference(window.sunrise);
     final dayJamamDuration = Duration(microseconds: dayLength.inMicroseconds ~/ 5);
@@ -163,6 +165,16 @@ class _DayCard extends StatelessWidget {
               'சூரிய உதயம் ${timeFmt.format(window.sunrise)} · '
               'அஸ்தமனம் ${timeFmt.format(window.sunset)}',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'அன்றைய அதிகார பட்சி: ${dayRuler.ruler.tamil}'
+              '${dayRuler.ruler == bird ? " (இன்று ${bird.tamil} அதிகார நாள்!)" : ""}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: dayRuler.ruler == bird ? Colors.green : Colors.deepPurple,
+              ),
             ),
             const Divider(),
             const Text('☀️ பகல் (Day)', style: TextStyle(fontWeight: FontWeight.bold)),
