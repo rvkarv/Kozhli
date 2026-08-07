@@ -12,7 +12,13 @@ class AppState extends ChangeNotifier {
   ResolvedLocation? location;
   Pakshi bird = Pakshi.kozhi;
   PanchapakshiState? state;
+Locale locale = const Locale('ta');
 
+  void setLocale(Locale newLocale) {
+    locale = newLocale;
+    notifyListeners();
+  }
+  
   // Manual: set once via BirthDetailsScreen.
   String? birthNakshatra;
   String? birthLagnaNakshatra;
