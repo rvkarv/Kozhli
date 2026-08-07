@@ -8,6 +8,7 @@ import '../services/app_state.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/countdown_ring.dart';
 import '../widgets/day_ruler_card.dart';
+import '../widgets/prediction_bar.dart';
 import '../widgets/thaarai_card.dart';
 import 'birth_details_screen.dart';
 import 'forecast_screen.dart';
@@ -43,6 +44,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('கோழி பட்சி'),
         actions: [
+          PopupMenuButton<Locale>(
+            icon: const Icon(Icons.language),
+            tooltip: 'Language / மொழி',
+            onSelected: (locale) => app.setLocale(locale),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: Locale('en'), child: Text('English')),
+              PopupMenuItem(value: Locale('ta'), child: Text('தமிழ்')),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_month),
             tooltip: 'Tomorrow / Week ahead',
@@ -62,6 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _LocationBar(app: app),
+              const SizedBox(height: 12),
+              const PredictionBar(),
               const SizedBox(height: 12),
               if (app.loading) const Center(child: CircularProgressIndicator()),
               if (app.error != null)
