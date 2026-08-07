@@ -2,7 +2,7 @@ name: panchapakshi_kozhi
 description: >
   Real-time Panchapakshi Sastra calculation app.
   Master engine app — first of 5 Panchapakshi apps
-  (கோழி, ஆந்தை, காகம், மயல், வல்லூறு).
+  (கோழி, ஆந்தை, காகம், மயில், வல்லூறு).
 publish_to: "none"
 version: 1.0.0+1
 
@@ -12,9 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
   flutter_localizations:
     sdk: flutter
+  cupertino_icons: ^1.0.6
 
   # Location
   geolocator: ^13.0.1
@@ -45,5 +45,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  flutter:
   generate: true
