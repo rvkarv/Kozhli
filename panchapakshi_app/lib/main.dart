@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/dashboard_screen.dart';   // ← CHANGED PATH
 import 'services/app_state.dart';
 
 void main() {
@@ -22,7 +22,7 @@ class PanchapakshiApp extends StatelessWidget {
           colorSchemeSeed: const Color(0xFF6A1B9A),
           useMaterial3: true,
         ),
-        home: const HomeScreen(),
+        home: const DashboardScreen(),    // ← CHANGED WIDGET
       ),
     );
   }
