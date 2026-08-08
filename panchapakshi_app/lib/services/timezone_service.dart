@@ -7,13 +7,12 @@ import 'package:timezone/timezone.dart' as tz;
 /// - IANA timezone lookup
 /// - Date-specific UTC offsets
 /// - Automatic DST handling
-/// - Conversion between UTC and local timezone
+/// - UTC/local timezone conversion
 /// - DST status
 ///
-/// IMPORTANT:
 /// The application must NOT use a fixed country UTC offset.
 /// The IANA timezone database determines the applicable offset
-/// for the actual selected location and date.
+/// for the actual timezone and selected date/time.
 class TimezoneService {
   TimezoneService._();
 
@@ -39,7 +38,7 @@ class TimezoneService {
 
   /// Return the IANA timezone location.
   ///
-  /// Example:
+  /// Examples:
   /// America/Chicago
   /// America/Indiana/Indianapolis
   /// Asia/Kolkata
@@ -65,7 +64,8 @@ class TimezoneService {
       instant.millisecondsSinceEpoch,
     );
 
-    return period.offsetAsDuration;
+    // timezone 0.10.1 exposes the offset in seconds.
+    return Duration(seconds: period.offset);
   }
 
   /// Convert a UTC instant to the selected IANA timezone.
@@ -85,7 +85,7 @@ class TimezoneService {
 
   /// Create a timezone-aware local date/time.
   ///
-  /// This will be used later for Future/Past calculations.
+  /// This will be used by the Future/Past calculation system.
   static tz.TZDateTime localDateTime({
     required String ianaName,
     required int year,
