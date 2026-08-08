@@ -30,7 +30,9 @@ class _ForecastScreenState extends State<ForecastScreen> {
     );
 
     if (picked != null) {
-      setState(() => _startDate = picked);
+      setState(() {
+        _startDate = picked;
+      });
     }
   }
 
@@ -110,15 +112,11 @@ class _DayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     /*
-     * IMPORTANT:
+     * The forecast date is a LOCAL calendar date at the
+     * selected place.
      *
-     * The selected forecast date represents the LOCAL calendar date
-     * at the selected place.
-     *
-     * Do NOT use the old longitude-based timezone approximation.
-     *
-     * The IANA timezone associated with the selected location is used
-     * to determine the correct UTC offset for THIS DATE, including DST.
+     * The timezone offset is therefore calculated for this
+     * specific location and this specific date.
      */
     final localDateTime = DateTime(
       date.year,
@@ -133,10 +131,9 @@ class _DayCard extends StatelessWidget {
     );
 
     /*
-     * Encode the selected local wall-clock time as UTC fields.
-     *
-     * This follows the same convention used by AppState:
-     * the numeric fields represent the selected place's local clock.
+     * Represent the selected local wall-clock time using UTC
+     * fields. The numeric fields still represent the selected
+     * location's local clock.
      */
     final dateAtLocation = DateTime.utc(
       date.year,
@@ -146,14 +143,22 @@ class _DayCard extends StatelessWidget {
     );
 
     /*
-     * Convert the local wall-clock representation to the corresponding
-     * UTC instant for astronomical calculations.
+     * Convert the selected local wall-clock date/time into
+     * the corresponding UTC instant.
      */
     final dateUtc = dateAtLocation.subtract(offset);
 
+    /*
+     * Resolve the IANA timezone associated with the selected
+     * location.
+     */
     final timeZoneId =
         LocationService.timezoneIdForLocation(location);
 
+    /*
+     * Build sunrise/sunset using the same location, timezone,
+     * and date-specific offset.
+     */
     final window = LocationService.buildDayWindow(
       nowAtLocation: dateAtLocation,
       lat: location.lat,
@@ -208,7 +213,7 @@ class _DayCard extends StatelessWidget {
           window.sunset.add(nightJamamDuration * j);
 
       final jEnd =
-          jStart.add(nightJamDuration);
+          jStart.add(nightJamamDuration);
 
       final activity = PanchapakshiRules.activityFor(
         bird: bird,
