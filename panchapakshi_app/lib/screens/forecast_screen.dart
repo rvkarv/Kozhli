@@ -18,7 +18,6 @@ class ForecastScreen extends StatefulWidget {
 
 class _ForecastScreenState extends State<ForecastScreen> {
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
-
   static const int _daysToShow = 7;
 
   Future<void> _pickDate(BuildContext context) async {
@@ -30,9 +29,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
     );
 
     if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
+      setState(() => _startDate = picked);
     }
   }
 
@@ -112,53 +109,51 @@ class _DayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     /*
-     * The forecast date is a LOCAL calendar date at the
-     * selected place.
+     * IMPORTANT TIMEZONE LOGIC
      *
-     * The timezone offset is therefore calculated for this
-     * specific location and this specific date.
+     * The forecast date is interpreted as a wall-clock date at the
+     * selected location.
+     *
+     * We must therefore calculate the IANA timezone offset for
+     * THIS forecast date rather than using the current/device offset.
+     *
+     * This is important for locations observing DST.
      */
-    final localDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      12,
-    );
 
-    final offset = LocationService.effectiveOffset(
-      location,
-      localDateTime: localDateTime,
-    );
-
-    /*
-     * Represent the selected local wall-clock time using UTC
-     * fields. The numeric fields still represent the selected
-     * location's local clock.
-     */
-    final dateAtLocation = DateTime.utc(
-      date.year,
-      date.month,
-      date.day,
-      12,
-    );
-
-    /*
-     * Convert the selected local wall-clock date/time into
-     * the corresponding UTC instant.
-     */
-    final dateUtc = dateAtLocation.subtract(offset);
-
-    /*
-     * Resolve the IANA timezone associated with the selected
-     * location.
-     */
     final timeZoneId =
         LocationService.timezoneIdForLocation(location);
 
     /*
-     * Build sunrise/sunset using the same location, timezone,
-     * and date-specific offset.
+     * Use noon on the selected forecast date as the reference
+     * local wall-clock time.
+     *
+     * DateTime.utc() is intentional here. The calculation engine
+     * uses the numeric DateTime fields to represent the selected
+     * location's local wall-clock time.
      */
+    final localNoon = DateTime.utc(
+      date.year,
+      date.month,
+      date.day,
+      12,
+    );
+
+    /*
+     * Resolve the offset applicable to this particular forecast
+     * date using the selected location's IANA timezone.
+     */
+    final offset = LocationService.effectiveOffset(
+      location,
+      localDateTime: localNoon,
+    );
+
+    /*
+     * Keep the local wall-clock fields intact for the calculation
+     * engine. The actual UTC instant used for astronomical
+     * calculations is derived where required using the offset.
+     */
+    final dateAtLocation = localNoon;
+
     final window = LocationService.buildDayWindow(
       nowAtLocation: dateAtLocation,
       lat: location.lat,
@@ -167,16 +162,20 @@ class _DayCard extends StatelessWidget {
       timeZoneId: timeZoneId,
     );
 
-    final paksham = MoonPhase.paskhamFor(dateUtc);
+    /*
+     * Moon phase is calculated using the corresponding UTC
+     * representation of the selected local date/time.
+     */
+    final paksham = MoonPhase.paskhamFor(
+      dateAtLocation.subtract(offset),
+    );
 
     final dayRuler = DayRulerRules.forWeekday(
       window.sunrise.weekday,
       paksham,
     );
 
-    final dayLength =
-        window.sunset.difference(window.sunrise);
-
+    final dayLength = window.sunset.difference(window.sunrise);
     final dayJamamDuration = Duration(
       microseconds: dayLength.inMicroseconds ~/ 5,
     );
@@ -192,8 +191,7 @@ class _DayCard extends StatelessWidget {
       final jStart =
           window.sunrise.add(dayJamamDuration * j);
 
-      final jEnd =
-          jStart.add(dayJamamDuration);
+      final jEnd = jStart.add(dayJamamDuration);
 
       final activity = PanchapakshiRules.activityFor(
         bird: bird,
@@ -203,8 +201,7 @@ class _DayCard extends StatelessWidget {
         dateTimeWeekday: window.sunrise.weekday,
       );
 
-      return '${timeFmt.format(jStart)}–'
-          '${timeFmt.format(jEnd)}: '
+      return '${timeFmt.format(jStart)}–${timeFmt.format(jEnd)}: '
           '${activity.tamil} (${activity.english})';
     });
 
@@ -212,8 +209,7 @@ class _DayCard extends StatelessWidget {
       final jStart =
           window.sunset.add(nightJamamDuration * j);
 
-      final jEnd =
-          jStart.add(nightJamamDuration);
+      final jEnd = jStart.add(nightJamamDuration);
 
       final activity = PanchapakshiRules.activityFor(
         bird: bird,
@@ -223,8 +219,7 @@ class _DayCard extends StatelessWidget {
         dateTimeWeekday: window.sunrise.weekday,
       );
 
-      return '${timeFmt.format(jStart)}–'
-          '${timeFmt.format(jEnd)}: '
+      return '${timeFmt.format(jStart)}–${timeFmt.format(jEnd)}: '
           '${activity.tamil} (${activity.english})';
     });
 
@@ -245,6 +240,7 @@ class _DayCard extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
+
             Text(
               '${paksham == Paksham.valarpirai ? "வளர்பிறை" : "தேய்பிறை"} · '
               'சூரிய உதயம் ${timeFmt.format(window.sunrise)} · '
@@ -254,7 +250,9 @@ class _DayCard extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
               'அன்றைய அதிகார பட்சி: ${dayRuler.ruler.tamil}'
               '${dayRuler.ruler == bird ? " (இன்று ${bird.tamil} அதிகார நாள்!)" : ""}',
@@ -266,36 +264,38 @@ class _DayCard extends StatelessWidget {
                     : Colors.deepPurple,
               ),
             ),
+
             const Divider(),
+
             const Text(
               '☀️ பகல் (Day)',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             ...dayRows.map(
               (r) => Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Text(
                   r,
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
             ),
+
             const SizedBox(height: 8),
+
             const Text(
               '🌙 இரவு (Night)',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             ...nightRows.map(
               (r) => Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Text(
                   r,
                   style: const TextStyle(fontSize: 13),
