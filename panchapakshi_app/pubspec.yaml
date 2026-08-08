@@ -39,6 +39,9 @@ dependencies:
   # IANA timezone database / automatic DST
   timezone: ^0.10.1
 
+  # Latitude/longitude -> IANA timezone
+  lat_lng_to_timezone: ^0.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
