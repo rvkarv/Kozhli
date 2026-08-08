@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../core/nakshatra_calculator.dart';
 import '../core/panchapakshi_engine.dart';
@@ -10,26 +12,32 @@ import '../services/location_service.dart';
 
 class AppState extends ChangeNotifier {
   ResolvedLocation? location;
+
   Pakshi bird = Pakshi.kozhi;
+
   PanchapakshiState? state;
-Locale locale = const Locale('ta');
+
+  Locale locale = const Locale('ta');
 
   void setLocale(Locale newLocale) {
     locale = newLocale;
     notifyListeners();
   }
-  
+
   // Manual: set once via BirthDetailsScreen.
   String? birthNakshatra;
+
   String? birthLagnaNakshatra;
 
   // Automatic: recalculated every tick from real Moon position.
   MoonPosition? currentMoon;
 
-  // Future/Past prediction: when set, the dashboard freezes on this
-  // date/time (interpreted as the SELECTED PLACE's own local wall
-  // clock) instead of updating live. Null = live "now".
+  // Future/Past prediction:
+  // when set, the dashboard freezes on this date/time
+  // interpreted as the SELECTED PLACE's own local wall clock.
+  // Null = live "now".
   DateTime? overridePickedLocal;
+
   bool get isLive => overridePickedLocal == null;
 
   ThaaraiResult? get thaarai => ThaaraiCalculator.compute(
@@ -43,6 +51,7 @@ Locale locale = const Locale('ta');
       );
 
   String? error;
+
   bool loading = false;
 
   Timer? _ticker;
@@ -51,9 +60,12 @@ Locale locale = const Locale('ta');
     loading = true;
     error = null;
     notifyListeners();
+
     try {
       location = await LocationService.getGpsLocation();
+
       _recompute();
+
       _startTicking();
     } catch (e) {
       error = e.toString();
@@ -66,17 +78,24 @@ Locale locale = const Locale('ta');
   Future<void> useManualLocation(ResolvedLocation loc) async {
     location = loc;
     error = null;
+
     _recompute();
+
     _startTicking();
+
     notifyListeners();
   }
 
   Future<void> tryRestoreLastLocation() async {
     final last = await LocationService.lastKnown();
+
     if (last != null) {
       location = last;
+
       _recompute();
+
       _startTicking();
+
       notifyListeners();
     }
   }
@@ -92,40 +111,59 @@ Locale locale = const Locale('ta');
   }
 
   /// [pickedLocal] is the date/time the user chose, interpreted as the
-  /// wall clock at the currently selected place. Pass null to return
-  /// to live "now" mode.
+  /// wall clock at the currently selected place.
+  ///
+  /// Pass null to return to live "now" mode.
   void setOverrideDateTime(DateTime? pickedLocal) {
     overridePickedLocal = pickedLocal;
+
     if (pickedLocal == null) {
       _startTicking();
     } else {
       _ticker?.cancel();
     }
+
     _recompute();
+
     notifyListeners();
   }
 
   void _startTicking() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _recompute());
+
+    _ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _recompute(),
+    );
   }
 
   void _recompute() {
     final loc = location;
-    if (loc == null) return;
+
+    if (loc == null) {
+      return;
+    }
 
     final offset = LocationService.effectiveOffset(loc);
 
     late DateTime nowAtLocation;
     late DateTime nowUtc;
+
     final override = overridePickedLocal;
+
     if (override != null) {
       nowAtLocation = DateTime.utc(
-        override.year, override.month, override.day, override.hour, override.minute,
+        override.year,
+        override.month,
+        override.day,
+        override.hour,
+        override.minute,
       );
+
       nowUtc = nowAtLocation.subtract(offset);
     } else {
       nowUtc = DateTime.now().toUtc();
+
       nowAtLocation = nowUtc.add(offset);
     }
 
