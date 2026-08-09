@@ -1,194 +1,142 @@
 import '../models/pakshi.dart';
+import 'day_ruler_rules.dart';
 import 'panchapakshi_rules.dart';
 
-/// A favourable KOZHLI time window.
-///
-/// The percentage is based on the KOZHLI authority-day rules:
-///
-///   அரசு = 100%
-///   ஊண்  = 75%
-///   நடை  = 50%
-///
-/// Other activities are not returned as success windows.
+class KozhliSuccessResult {
+  final Pakshi authorityBird;
+  final String authorityRelationship;
+  final bool isAuthorityDay;
+  final bool isPaduDay;
+  final int percent;
+  final String label;
+
+  const KozhliSuccessResult({
+    required this.authorityBird,
+    required this.authorityRelationship,
+    required this.isAuthorityDay,
+    required this.isPaduDay,
+    required this.percent,
+    required this.label,
+  });
+}
+
 class KozhliSuccessWindow {
   final DateTime start;
   final DateTime end;
+  final Pakshi bird;
   final Thozhil activity;
   final int percent;
+  final String label;
 
   const KozhliSuccessWindow({
     required this.start,
     required this.end,
+    required this.bird,
     required this.activity,
     required this.percent,
+    required this.label,
   });
 }
 
-/// KOZHLI-specific success rules used by the Dashboard and
-/// Future Prediction.
-///
-/// IMPORTANT:
-/// This class does not calculate sunrise/sunset.
-/// The caller supplies the actual local period start/end, so
-/// the calculation automatically follows the selected place
-/// and selected date.
 class KozhliSuccessRules {
-  static const Duration _standardJamam = Duration(minutes: 144);
+  static const Pakshi kozhli = Pakshi.kozhi;
 
-  /// Returns only the favourable KOZHLI windows within the
-  /// supplied day or night period.
+  /// Determines KOZHLI's relationship with the day's authority bird.
   ///
-  /// The supplied period is divided into 5 real local ஜாமங்கள்.
-  /// Each ஜாமம் is then divided into 5 அந்தரங்கள் using the
-  /// Panchapakshi weighted minute tables.
-  ///
-  /// The difference between the actual ஜாமம் length and the
-  /// standard 2:24:00 is distributed equally across the five
-  /// அந்தரங்கள், matching the calculation used by the
-  /// Panchapakshi engine.
-  static List<KozhliSuccessWindow> windowsForPeriod({
-    required DateTime periodStart,
-    required DateTime periodEnd,
-    required Paksham paksham,
-    required DayNight dayNight,
-    required int rulingWeekday,
-    required bool paduDay,
-  }) {
-    // KOZHLI படுபட்சி day has no success.
-    if (paduDay) {
-      return const <KozhliSuccessWindow>[];
+  /// Priority:
+  /// 1. KOZHLI is the authority bird -> அதிகார பட்சி
+  /// 2. KOZHLI is subordinate -> படுபட்சி
+  /// 3. KOZHLI is an enemy -> பகை பட்சி
+  /// 4. KOZHLI is a friend -> நட்பு பட்சி
+  /// 5. Otherwise -> நடுநிலை
+  static String relationshipToKozhli(DayRulerInfo info) {
+    if (info.ruler == kozhli) {
+      return 'சுயம்';
     }
 
-    final periodLength = periodEnd.difference(periodStart);
-
-    if (periodLength <= Duration.zero) {
-      return const <KozhliSuccessWindow>[];
+    if (info.subordinate == kozhli) {
+      return 'படுபட்சி';
     }
 
-    final jamamDuration = Duration(
-      microseconds: periodLength.inMicroseconds ~/ 5,
-    );
-
-    final results = <KozhliSuccessWindow>[];
-
-    // KOZHLI is the selected calculation bird.
-    const bird = Pakshi.kozhi;
-
-    for (var jamamIndex = 0; jamamIndex < 5; jamamIndex++) {
-      final jamamStart =
-          periodStart.add(jamamDuration * jamamIndex);
-
-      // Ensure the final ஜாமம் ends exactly at the real
-      // period end, including any integer-division remainder.
-      final jamamEnd = jamamIndex == 4
-          ? periodEnd
-          : jamamStart.add(jamamDuration);
-
-      final jamamLength = jamamEnd.difference(jamamStart);
-
-      final birdCycle = PanchapakshiRules.birdOrder;
-      final startBirdIndex = birdCycle.indexOf(bird);
-
-      final antharamBirds = List.generate(
-        5,
-        (i) => birdCycle[
-            (startBirdIndex + i) % birdCycle.length],
-      );
-
-      final activities = antharamBirds
-          .map(
-            (b) => PanchapakshiRules.activityFor(
-              bird: b,
-              jamam: jamamIndex + 1,
-              paksham: paksham,
-              dayNight: dayNight,
-              dateTimeWeekday: rulingWeekday,
-            ),
-          )
-          .toList();
-
-      final weightTable =
-          PanchapakshiRules.minutesTableFor(
-        paksham,
-        dayNight,
-      );
-
-      final extraTotal = jamamLength - _standardJamam;
-
-      final extraPerAntharam = Duration(
-        microseconds: extraTotal.inMicroseconds ~/ 5,
-      );
-
-      final roundingRemainder =
-          extraTotal - (extraPerAntharam * 5);
-
-      var cumulative = Duration.zero;
-
-      for (var i = 0; i < 5; i++) {
-        final activity = activities[i];
-
-        final baseMinutes = weightTable[activity.tamil];
-
-        if (baseMinutes == null) {
-          cumulative += _fallbackDuration(
-            jamamLength,
-          );
-          continue;
-        }
-
-        final baseDuration =
-            Duration(minutes: baseMinutes);
-
-        final adjustment = i == 4
-            ? extraPerAntharam + roundingRemainder
-            : extraPerAntharam;
-
-        var antharamDuration =
-            baseDuration + adjustment;
-
-        // Protect against an invalid negative duration in
-        // unusual astronomical inputs.
-        if (antharamDuration <= Duration.zero) {
-          antharamDuration = Duration.zero;
-        }
-
-        final start = jamamStart.add(cumulative);
-
-        var end = start.add(antharamDuration);
-
-        // Never allow an antharam to extend beyond the real
-        // ஜாமம் end.
-        if (end.isAfter(jamamEnd)) {
-          end = jamamEnd;
-        }
-
-        final percent = _successPercent(activity);
-
-        if (percent > 0 && end.isAfter(start)) {
-          results.add(
-            KozhliSuccessWindow(
-              start: start,
-              end: end,
-              activity: activity,
-              percent: percent,
-            ),
-          );
-        }
-
-        cumulative += antharamDuration;
-
-        // Stop if the real ஜாமம் has already been consumed.
-        if (!start.isBefore(jamamEnd)) {
-          break;
-        }
-      }
+    if (info.enemies.contains(kozhli)) {
+      return 'பகை பட்சி';
     }
 
-    return results;
+    if (info.friend == kozhli) {
+      return 'நட்பு பட்சி';
+    }
+
+    return 'நடுநிலை';
   }
 
-  /// KOZHLI authority-day success percentages.
-  static int _successPercent(Thozhil activity) {
+  /// Evaluates the current KOZHLI Panchapakshi condition.
+  ///
+  /// KOZHLI அதிகார பட்சி:
+  ///   அரசு = 100%
+  ///   ஊண்  = 75%
+  ///   நடை  = 50%
+  ///
+  /// KOZHLI படுபட்சி:
+  ///   0% / Avoid
+  ///
+  /// Other days:
+  ///   No KOZHLI authority success percentage.
+  static KozhliSuccessResult evaluate({
+    required DayRulerInfo dayRuler,
+    required Pakshi antharamBird,
+    required Thozhil antharamActivity,
+  }) {
+    final authorityBird = dayRuler.ruler;
+
+    final relationship = relationshipToKozhli(dayRuler);
+
+    final isAuthorityDay = authorityBird == kozhli;
+    final isPaduDay = dayRuler.subordinate == kozhli;
+
+    if (isPaduDay) {
+      return KozhliSuccessResult(
+        authorityBird: authorityBird,
+        authorityRelationship: 'படுபட்சி',
+        isAuthorityDay: false,
+        isPaduDay: true,
+        percent: 0,
+        label: 'KOZHLI படுபட்சி — தவிர்க்கவும்',
+      );
+    }
+
+    if (!isAuthorityDay) {
+      return KozhliSuccessResult(
+        authorityBird: authorityBird,
+        authorityRelationship: relationship,
+        isAuthorityDay: false,
+        isPaduDay: false,
+        percent: 0,
+        label: 'KOZHLI அதிகார பட்சி இல்லை',
+      );
+    }
+
+    final percent = _successPercent(antharamBird, antharamActivity);
+
+    return KozhliSuccessResult(
+      authorityBird: authorityBird,
+      authorityRelationship: 'சுயம்',
+      isAuthorityDay: true,
+      isPaduDay: false,
+      percent: percent,
+      label: _successLabel(percent, antharamActivity),
+    );
+  }
+
+  static int _successPercent(
+    Pakshi antharamBird,
+    Thozhil activity,
+  ) {
+    // The KOZHLI success percentage applies to KOZHLI
+    // அந்தர பட்சி தொழில்.
+    if (antharamBird != kozhli) {
+      return 0;
+    }
+
     switch (activity) {
       case Thozhil.arasu:
         return 100;
@@ -205,16 +153,147 @@ class KozhliSuccessRules {
     }
   }
 
-  /// Defensive fallback.
-  ///
-  /// This should normally never be used because all five
-  /// Panchapakshi activities have entries in the standard
-  /// minute tables.
-  static Duration _fallbackDuration(
-    Duration jamamLength,
+  static String _successLabel(
+    int percent,
+    Thozhil activity,
   ) {
-    return Duration(
-      microseconds: jamamLength.inMicroseconds ~/ 5,
+    switch (percent) {
+      case 100:
+        return 'அரசு — 100% Success';
+
+      case 75:
+        return 'ஊண் — 75% Success';
+
+      case 50:
+        return 'நடை — 50% Success';
+
+      default:
+        return '${activity.tamil} — 0% Success';
+    }
+  }
+
+  /// Builds the successful KOZHLI periods within a real sunrise/sunset
+  /// or sunset/next-sunrise period.
+  ///
+  /// The period is divided into the five real Panchapakshi ஜாமங்கள்.
+  /// Each ஜாமத்தின் அந்தர timings use the location-specific actual
+  /// ஜாமம் duration together with the weighted Panchapakshi minute table.
+  static List<KozhliSuccessWindow> windowsForPeriod({
+    required DateTime periodStart,
+    required DateTime periodEnd,
+    required Paksham paksham,
+    required DayNight dayNight,
+    required int rulingWeekday,
+    required bool paduDay,
+  }) {
+    if (paduDay) {
+      return const <KozhliSuccessWindow>[];
+    }
+
+    final totalPeriod = periodEnd.difference(periodStart);
+
+    if (totalPeriod.inMicroseconds <= 0) {
+      return const <KozhliSuccessWindow>[];
+    }
+
+    final jamamDuration = Duration(
+      microseconds: totalPeriod.inMicroseconds ~/ 5,
     );
+
+    final birdCycle = dayNight == DayNight.day
+        ? PanchapakshiRules.birdOrder
+        : PanchapakshiRules.birdOrder.reversed.toList();
+
+    final weightTable =
+        PanchapakshiRules.minutesTableFor(paksham, dayNight);
+
+    final result = <KozhliSuccessWindow>[];
+
+    for (var jamamIndex = 0; jamamIndex < 5; jamamIndex++) {
+      final jamamStart =
+          periodStart.add(jamamDuration * jamamIndex);
+
+      final jamamEnd = jamamIndex == 4
+          ? periodEnd
+          : jamamStart.add(jamamDuration);
+
+      final activities = birdCycle.map((bird) {
+        return PanchapakshiRules.activityFor(
+          bird: bird,
+          jamam: jamamIndex + 1,
+          paksham: paksham,
+          dayNight: dayNight,
+          dateTimeWeekday: rulingWeekday,
+        );
+      }).toList();
+
+      final durations = _antharamDurations(
+        jamamDuration: jamamDuration,
+        activities: activities,
+        weightTable: weightTable,
+      );
+
+      var cursor = jamamStart;
+
+      for (var i = 0; i < 5; i++) {
+        final bird = birdCycle[i];
+        final activity = activities[i];
+
+        final end = i == 4
+            ? jamamEnd
+            : cursor.add(durations[i]);
+
+        if (bird == kozhli) {
+          final percent = _successPercent(bird, activity);
+
+          if (percent > 0) {
+            result.add(
+              KozhliSuccessWindow(
+                start: cursor,
+                end: end,
+                bird: bird,
+                activity: activity,
+                percent: percent,
+                label: _successLabel(percent, activity),
+              ),
+            );
+          }
+        }
+
+        cursor = end;
+      }
+    }
+
+    return result;
+  }
+
+  static List<Duration> _antharamDurations({
+    required Duration jamamDuration,
+    required List<Thozhil> activities,
+    required Map<String, int> weightTable,
+  }) {
+    const standardJamam = Duration(minutes: 144);
+
+    final extraTotal = jamamDuration - standardJamam;
+
+    final extraPerAntharam = Duration(
+      microseconds: extraTotal.inMicroseconds ~/ 5,
+    );
+
+    final roundingRemainder =
+        extraTotal - (extraPerAntharam * 5);
+
+    return List.generate(5, (i) {
+      final baseMinutes =
+          weightTable[activities[i].tamil] ?? 0;
+
+      final base = Duration(minutes: baseMinutes);
+
+      final extra = i == 4
+          ? extraPerAntharam + roundingRemainder
+          : extraPerAntharam;
+
+      return base + extra;
+    });
   }
 }
