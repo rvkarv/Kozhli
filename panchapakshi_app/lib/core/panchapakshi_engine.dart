@@ -1,10 +1,26 @@
 import '../models/pakshi.dart';
 import '../models/panchapakshi_state.dart';
+import 'day_ruler_rules.dart';
 import 'gowri_horai.dart';
+import 'kozhli_success_rules.dart';
 import 'moon_phase.dart';
 import 'panchapakshi_rules.dart';
 
 class PanchapakshiEngine {
+  static List<Pakshi> _antharamBirds({
+    required Pakshi bird,
+    required DayNight dayNight,
+  }) {
+    // The workbook's per-bird sheets use the forward bird cycle for day
+    // and the reverse bird cycle for night.  For KOZHLI on a Saturday night
+    // this gives: கோழி → காகம் → ஆந்தை → வல்லூறு → மயில்.
+    final cycle = dayNight == DayNight.day
+        ? PanchapakshiRules.birdOrder
+        : PanchapakshiRules.birdOrder.reversed.toList();
+    final start = cycle.indexOf(bird);
+    return List.generate(5, (i) => cycle[(start + i) % 5]);
+  }
+
   static PanchapakshiState compute({
     required Pakshi bird,
     required DateTime nowLocal,
@@ -22,28 +38,33 @@ class PanchapakshiEngine {
 
     late DateTime periodStart;
     late DateTime periodEnd;
-    late int rulingWeekday;
 
     if (isDay) {
       periodStart = sunrise;
       periodEnd = sunset;
-      rulingWeekday = sunrise.weekday;
     } else if (isBeforeTodaySunrise) {
       final prevSunset = previousSunset ?? sunset.subtract(const Duration(hours: 24));
       periodStart = prevSunset;
       periodEnd = sunrise;
-      rulingWeekday = sunrise.subtract(const Duration(days: 1)).weekday;
     } else {
       periodStart = sunset;
       periodEnd = nextSunrise;
-      rulingWeekday = sunrise.weekday;
     }
 
+    // IMPORTANT: the workbook's night sections are keyed to the current
+    // calendar weekday.  Therefore Saturday 01:50 is Saturday night, not
+    // Friday night.  Do not derive this from sunrise.subtract(1 day).
+    final rulingWeekday = nowLocal.weekday;
+    final dayRuler = DayRulerRules.forWeekday(rulingWeekday, paksham);
+
     final periodLength = periodEnd.difference(periodStart);
-    final jamamDuration = Duration(microseconds: periodLength.inMicroseconds ~/ 5);
+    final jamamDuration = Duration(
+      microseconds: periodLength.inMicroseconds ~/ 5,
+    );
 
     final elapsed = nowLocal.difference(periodStart);
-    var jamamIndex = (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
+    var jamamIndex =
+        (elapsed.inMicroseconds / jamamDuration.inMicroseconds).floor();
     jamamIndex = jamamIndex.clamp(0, 4);
     final jamam = jamamIndex + 1;
 
@@ -58,45 +79,47 @@ class PanchapakshiEngine {
       dateTimeWeekday: rulingWeekday,
     );
 
-    // --- Antharam: standard-minute base PLUS a FLAT equal share of the
-    // difference between the real jamam length and the standard 2:24:00
-    // (144 min) jamam. This is NOT proportional scaling — every antharam
-    // gets the SAME extra offset, confirmed directly against the
-    // workbook's Main sheet formula (D6:D12, E8:E9, F8:F9):
-    //   extraPerAntharam = (actualJamamLength - 2:24:00) / 5
-    //   antharamDuration = tableWeightMinutes + extraPerAntharam
-    final birdCycle = PanchapakshiRules.birdOrder;
-    final startBirdIdx = birdCycle.indexOf(bird);
-    final antharamBirds = List.generate(5, (i) => birdCycle[(startBirdIdx + i) % 5]);
+    // Antharam durations remain weighted by the workbook's activity-minute
+    // table, with the actual location's real jamam length applied through
+    // the same flat adjustment used by the existing workbook formula.
+    final antharamBirds = _antharamBirds(
+      bird: bird,
+      dayNight: dayNight,
+    );
     final antharamActivities = antharamBirds
-        .map((b) => PanchapakshiRules.activityFor(
-              bird: b,
-              jamam: jamam,
-              paksham: paksham,
-              dayNight: dayNight,
-              dateTimeWeekday: rulingWeekday,
-            ))
+        .map(
+          (b) => PanchapakshiRules.activityFor(
+            bird: b,
+            jamam: jamam,
+            paksham: paksham,
+            dayNight: dayNight,
+            dateTimeWeekday: rulingWeekday,
+          ),
+        )
         .toList();
 
     final weightTable = PanchapakshiRules.minutesTableFor(paksham, dayNight);
-
-    const standardJamam = Duration(minutes: 144); // 2:24:00, fixed reference
+    const standardJamam = Duration(minutes: 144);
     final extraTotal = jamamDuration - standardJamam;
-    final extraPerAntharam =
-        Duration(microseconds: extraTotal.inMicroseconds ~/ 5);
-    // Absorb any rounding remainder into the 5th antharam so the 5
-    // durations always sum EXACTLY to the real jamam length.
+    final extraPerAntharam = Duration(
+      microseconds: extraTotal.inMicroseconds ~/ 5,
+    );
     final roundingRemainder = extraTotal - (extraPerAntharam * 5);
 
     final antharamDurations = List.generate(5, (i) {
-      final base = Duration(minutes: weightTable[antharamActivities[i].tamil]!);
-      final extra = i == 4 ? (extraPerAntharam + roundingRemainder) : extraPerAntharam;
+      final base = Duration(
+        minutes: weightTable[antharamActivities[i].tamil]!,
+      );
+      final extra = i == 4
+          ? extraPerAntharam + roundingRemainder
+          : extraPerAntharam;
       return base + extra;
     });
 
     var cumulative = Duration.zero;
     var antharamIndex = 4;
     var antharamStart = jamamStart;
+
     for (var i = 0; i < 5; i++) {
       final start = jamamStart.add(cumulative);
       final end = start.add(antharamDurations[i]);
@@ -107,33 +130,40 @@ class PanchapakshiEngine {
       }
       cumulative += antharamDurations[i];
     }
-    final antharamEnd = antharamStart.add(antharamDurations[antharamIndex]);
+
+    final antharamEnd =
+        antharamStart.add(antharamDurations[antharamIndex]);
     final antharam = antharamIndex + 1;
     final antharamBird = antharamBirds[antharamIndex];
     final antharamActivity = antharamActivities[antharamIndex];
-
     final remaining = antharamEnd.difference(nowLocal);
 
     Thozhil nextActivity;
     DateTime nextActivityStart;
     Pakshi nextAntharamBird;
+
     if (antharamIndex < 4) {
       nextAntharamBird = antharamBirds[antharamIndex + 1];
       nextActivity = antharamActivities[antharamIndex + 1];
       nextActivityStart = antharamEnd;
     } else if (jamamIndex < 4) {
-      final nextJamamBirds = List.generate(5, (i) => birdCycle[(startBirdIdx + i) % 5]);
-      final nextJamamActivities = nextJamamBirds
-          .map((b) => PanchapakshiRules.activityFor(
-                bird: b,
-                jamam: jamam + 1,
-                paksham: paksham,
-                dayNight: dayNight,
-                dateTimeWeekday: rulingWeekday,
-              ))
+      final nextBirds = _antharamBirds(
+        bird: bird,
+        dayNight: dayNight,
+      );
+      final nextActivities = nextBirds
+          .map(
+            (b) => PanchapakshiRules.activityFor(
+              bird: b,
+              jamam: jamam + 1,
+              paksham: paksham,
+              dayNight: dayNight,
+              dateTimeWeekday: rulingWeekday,
+            ),
+          )
           .toList();
-      nextAntharamBird = nextJamamBirds[0];
-      nextActivity = nextJamamActivities[0];
+      nextAntharamBird = nextBirds[0];
+      nextActivity = nextActivities[0];
       nextActivityStart = jamamEnd;
     } else {
       final flippedDayNight = isDay ? DayNight.night : DayNight.day;
@@ -148,6 +178,12 @@ class PanchapakshiEngine {
       nextActivityStart = periodEnd;
     }
 
+    final success = KozhliSuccessRules.evaluate(
+      dayRuler: dayRuler,
+      antharamBird: antharamBird,
+      antharamActivity: antharamActivity,
+    );
+
     final gowri = GowriCalculator.forInstant(nowLocal);
     final horai = HoraiCalculator.forInstant(nowLocal);
 
@@ -159,6 +195,13 @@ class PanchapakshiEngine {
       sunrise: sunrise,
       sunset: sunset,
       nextSunrise: nextSunrise,
+      rulingWeekday: rulingWeekday,
+      authorityBird: success.authorityBird,
+      authorityRelationship: success.authorityRelationship,
+      isKozhliAuthorityDay: success.isAuthorityDay,
+      isKozhliPaduDay: success.isPaduDay,
+      successPercent: success.percent,
+      successLabel: success.label,
       jamam: jamam,
       jamamActivity: jamamActivity,
       jamamStart: jamamStart,
@@ -178,4 +221,3 @@ class PanchapakshiEngine {
     );
   }
 }
-
