@@ -101,9 +101,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               if (s != null) ...[
-                // ---------------------------------------------------------
+                // =======================================================
                 // DAY / NIGHT + PAKSHAM
-                // ---------------------------------------------------------
+                // =======================================================
                 Center(
                   child: Column(
                     children: [
@@ -118,8 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 4),
                       Text(
                         s.paksham == Paksham.valarpirai
-                            ? 'வளர்பிறை (Waxing)'
-                            : 'தேய்பிறை (Waning)',
+                            ? 'வளர்பிறை'
+                            : 'தேய்பிறை',
                         style: const TextStyle(
                           color: Colors.grey,
                         ),
@@ -130,9 +130,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16),
 
-                // ---------------------------------------------------------
-                // PANCHAPAKSHI AUTHORITY / PADU SUMMARY
-                // ---------------------------------------------------------
+                // =======================================================
+                // PANCHAPAKSHI STATUS
+                // =======================================================
                 _AuthoritySummary(
                   bird: app.bird,
                   rulingWeekday: s.rulingWeekday,
@@ -147,9 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // COUNTDOWN
-                // ---------------------------------------------------------
+                // =======================================================
                 Center(
                   child: CountdownRing(
                     remaining: s.remaining.isNegative
@@ -163,11 +163,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // CURRENT JAMAM
-                // ---------------------------------------------------------
+                // =======================================================
                 ActivityCard(
-                  title: 'இப்போதைய தொழில் (Current — ஜாமம் ${s.jamam})',
+                  title: 'இப்போதைய தொழில் — ஜாமம் ${s.jamam}',
                   activity: s.jamamActivity,
                   subtitle:
                       '${timeFmt.format(s.jamamStart)} – '
@@ -176,62 +176,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 10),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // CURRENT ANTHARAM
-                // ---------------------------------------------------------
-                ActivityCard(
-                  title:
-                      'அந்தரப் பட்சி (${s.antharamBird.tamil} - அந்தரம் ${s.antharam})',
-                  activity: s.antharamActivity,
-                  subtitle:
-                      '${timeFmt.format(s.antharamStart)} – '
-                      '${timeFmt.format(s.antharamEnd)}',
-                ),
-
-                const SizedBox(height: 8),
-
-                // Explicit relationship for current antharam bird.
-                _RelationshipCard(
-                  title: 'தற்போதைய அந்தர பட்சி உறவு',
+                // Relationship is shown HERE.
+                // No separate duplicate relationship card.
+                // =======================================================
+                _AntharamCard(
+                  title: 'தற்போதைய அந்தர பட்சி',
                   bird: s.antharamBird,
+                  activity: s.antharamActivity,
+                  start: s.antharamStart,
+                  end: s.antharamEnd,
                   relationship: _relationshipForBird(
                     rulingWeekday: s.rulingWeekday,
                     paksham: s.paksham,
                     bird: s.antharamBird,
                   ),
+                  timeFmt: timeFmt,
                 ),
 
                 const SizedBox(height: 10),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // NEXT ANTHARAM
-                // ---------------------------------------------------------
-                ActivityCard(
-                  title: 'அடுத்த அந்தர பட்சி (${s.nextAntharamBird.tamil})',
-                  activity: s.nextActivity,
-                  subtitle:
-                      'தொடங்கும் நேரம்: '
-                      '${timeFmt.format(s.nextActivityStart)}',
-                ),
-
-                const SizedBox(height: 8),
-
-                // Explicit relationship for next antharam bird.
-                _RelationshipCard(
-                  title: 'அடுத்த அந்தர பட்சி உறவு',
+                // Relationship is shown HERE.
+                // =======================================================
+                _NextAntharamCard(
                   bird: s.nextAntharamBird,
+                  activity: s.nextActivity,
+                  start: s.nextActivityStart,
                   relationship: _relationshipForBird(
                     rulingWeekday: s.rulingWeekday,
                     paksham: s.paksham,
                     bird: s.nextAntharamBird,
                   ),
+                  timeFmt: timeFmt,
                 ),
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // GOWRI / HORAI
-                // ---------------------------------------------------------
+                // =======================================================
                 Row(
                   children: [
                     Expanded(
@@ -253,11 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
-                // DAY RULER CARD
-                // IMPORTANT:
-                // Use s.rulingWeekday instead of DateTime.now().weekday.
-                // ---------------------------------------------------------
+                // =======================================================
+                // DAY RULER
+                // =======================================================
                 DayRulerCard(
                   bird: app.bird,
                   info: DayRulerRules.forWeekday(
@@ -268,9 +252,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
-                // CURRENT MOON / NAKSHATRA
-                // ---------------------------------------------------------
+                // =======================================================
+                // NAKSHATRA
+                // =======================================================
                 if (app.currentMoon != null)
                   Card(
                     child: Padding(
@@ -301,9 +285,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // THAARAI - BIRTH RASI
-                // ---------------------------------------------------------
+                // =======================================================
                 ThaaraiCard(
                   title: 'தாராபலம் (பிறந்த ராசி நட்சத்திரத்திற்கு)',
                   thaarai: app.thaarai,
@@ -317,9 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 10),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // THAARAI - LAGNA
-                // ---------------------------------------------------------
+                // =======================================================
                 ThaaraiCard(
                   title: 'தாராபலம் (பிறந்த லக்னம் நட்சத்திரத்திற்கு)',
                   thaarai: app.thaaraiLagna,
@@ -333,9 +317,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // ---------------------------------------------------------
+                // =======================================================
                 // SUN TIMES
-                // ---------------------------------------------------------
+                // =======================================================
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -367,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ==========================================================================
-// AUTHORITY / PADU SUMMARY
+// PANCHAPAKSHI AUTHORITY / PADU SUMMARY
 // ==========================================================================
 
 class _AuthoritySummary extends StatelessWidget {
@@ -400,16 +384,14 @@ class _AuthoritySummary extends StatelessWidget {
       paksham,
     );
 
-    final authorityBird = rulerInfo.ruler;
+    final actualAuthorityBird = rulerInfo.ruler;
     final paduBird = rulerInfo.subordinate;
 
-    final authorityColor = isAuthorityDay
-        ? Colors.green
-        : Colors.deepPurple;
+    final authorityColor =
+        isAuthorityDay ? Colors.green : Colors.deepPurple;
 
-    final paduColor = isPaduDay
-        ? Colors.red
-        : Colors.deepPurple;
+    final paduColor =
+        isPaduDay ? Colors.red : Colors.deepPurple;
 
     return Card(
       child: Padding(
@@ -442,9 +424,9 @@ class _AuthoritySummary extends StatelessWidget {
                 Expanded(
                   child: _StatusTile(
                     title: 'அதிகார பட்சி',
-                    value: authorityBird.tamil,
+                    value: actualAuthorityBird.tamil,
                     color: authorityColor,
-                    subtitle: authorityBird == bird
+                    subtitle: actualAuthorityBird == bird
                         ? 'கோழிக்கு அதிகாரம்'
                         : null,
                   ),
@@ -477,6 +459,213 @@ class _AuthoritySummary extends StatelessWidget {
               value: '$successPercent% — $successLabel',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================================================
+// CURRENT ANTHARAM CARD
+// ==========================================================================
+
+class _AntharamCard extends StatelessWidget {
+  final String title;
+  final Pakshi bird;
+  final Thozhil activity;
+  final DateTime start;
+  final DateTime end;
+  final String relationship;
+  final DateFormat timeFmt;
+
+  const _AntharamCard({
+    required this.title,
+    required this.bird,
+    required this.activity,
+    required this.start,
+    required this.end,
+    required this.relationship,
+    required this.timeFmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'தற்போதைய அந்தர பட்சி',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bird.tamil,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _RelationshipBadge(
+                  relationship: relationship,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _DetailLine(
+              label: 'தொழில்',
+              value: activity.tamil,
+            ),
+            const SizedBox(height: 4),
+            _DetailLine(
+              label: 'நேரம்',
+              value:
+                  '${timeFmt.format(start)} – ${timeFmt.format(end)}',
+            ),
+            const SizedBox(height: 4),
+            _DetailLine(
+              label: 'உறவு',
+              value: relationship,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================================================
+// NEXT ANTHARAM CARD
+// ==========================================================================
+
+class _NextAntharamCard extends StatelessWidget {
+  final Pakshi bird;
+  final Thozhil activity;
+  final DateTime start;
+  final String relationship;
+  final DateFormat timeFmt;
+
+  const _NextAntharamCard({
+    required this.bird,
+    required this.activity,
+    required this.start,
+    required this.relationship,
+    required this.timeFmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'அடுத்த அந்தர பட்சி',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bird.tamil,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _RelationshipBadge(
+                  relationship: relationship,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _DetailLine(
+              label: 'தொழில்',
+              value: activity.tamil,
+            ),
+            const SizedBox(height: 4),
+            _DetailLine(
+              label: 'தொடங்கும் நேரம்',
+              value: timeFmt.format(start),
+            ),
+            const SizedBox(height: 4),
+            _DetailLine(
+              label: 'உறவு',
+              value: relationship,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================================================
+// RELATIONSHIP BADGE
+// ==========================================================================
+
+class _RelationshipBadge extends StatelessWidget {
+  final String relationship;
+
+  const _RelationshipBadge({
+    required this.relationship,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+
+    switch (relationship) {
+      case 'சுயம்':
+        color = Colors.green;
+        break;
+      case 'நட்பு':
+        color = Colors.blue;
+        break;
+      case 'பகை பட்சி':
+        color = Colors.red;
+        break;
+      case 'படுபட்சி':
+        color = Colors.deepOrange;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 5,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(.55),
+        ),
+      ),
+      child: Text(
+        relationship,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
         ),
       ),
     );
@@ -541,54 +730,6 @@ class _StatusTile extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-// ==========================================================================
-// RELATIONSHIP CARD
-// ==========================================================================
-
-class _RelationshipCard extends StatelessWidget {
-  final String title;
-  final Pakshi bird;
-  final String relationship;
-
-  const _RelationshipCard({
-    required this.title,
-    required this.bird,
-    required this.relationship,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.blueGrey.withOpacity(0.08),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '$title: ${bird.tamil}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Text(
-              relationship,
-              style: const TextStyle(
-                color: Colors.amber,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
