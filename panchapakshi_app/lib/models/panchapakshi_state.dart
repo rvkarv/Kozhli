@@ -10,6 +10,14 @@ class PanchapakshiState {
   final DateTime sunset;
   final DateTime nextSunrise;
 
+  final int rulingWeekday;
+  final Pakshi authorityBird;
+  final String authorityRelationship;
+  final bool isKozhliAuthorityDay;
+  final bool isKozhliPaduDay;
+  final int successPercent;
+  final String successLabel;
+
   final int jamam;
   final Thozhil jamamActivity;
   final DateTime jamamStart;
@@ -38,6 +46,13 @@ class PanchapakshiState {
     required this.sunrise,
     required this.sunset,
     required this.nextSunrise,
+    required this.rulingWeekday,
+    required this.authorityBird,
+    required this.authorityRelationship,
+    required this.isKozhliAuthorityDay,
+    required this.isKozhliPaduDay,
+    required this.successPercent,
+    required this.successLabel,
     required this.jamam,
     required this.jamamActivity,
     required this.jamamStart,
