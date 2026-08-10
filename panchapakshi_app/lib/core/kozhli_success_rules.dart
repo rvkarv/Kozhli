@@ -41,55 +41,44 @@ class KozhliSuccessWindow {
 class KozhliSuccessRules {
   static const Pakshi kozhli = Pakshi.kozhi;
 
-  /// Fixed relationship of each அந்தர பட்சி to KOZHLI for the
-  /// Future Prediction / அந்தர பட்சி display.
+  /// Pairwise relationship of each bird to KOZHLI, matching the
+  /// workbook's அந்தர பட்சி -> உறவு column.
   ///
-  /// IMPORTANT: this is the workbook's "உறவு" column and is NOT the same
-  /// thing as the day's Table-10 roles (அதிகார பட்சி / படு பட்சி /
-  /// சம பட்சி / பகை பட்சி / நட்பு பட்சி).
+  /// This is deliberately separate from Table-10's daily roles
+  /// (அதிகார / படு / சம / பகை / நட்பு பட்சி).
   ///
-  /// From the KOZHLI sheets in the verified workbook:
-  ///   KOZHLI    -> சுயம்
-  ///   MAYIL     -> நட்பு
-  ///   KAAGAM    -> நட்பு
-  ///   VALLOORU -> பகை
-  ///   AANDHAI  -> பகை
+  /// KOZHLI -> சுயம்
+  /// MAYIL -> நட்பு
+  /// KAAGAM -> நட்பு
+  /// VALLOORU -> பகை
+  /// AANDHAI -> பகை
   ///
-  /// Therefore both மயில் and காகம் can correctly appear as நட்பு for
-  /// KOZHLI. They must not be replaced by their Table-10 day-role labels.
-  static String relationshipToKozhli(Pakshi antarBird) {
-    switch (antarBird) {
+  /// Thus both மயில் and காகம் can correctly be நட்பு for KOZHLI.
+  static String relationshipToKozhli(Pakshi bird) {
+    switch (bird) {
       case Pakshi.kozhi:
         return 'சுயம்';
       case Pakshi.mayil:
       case Pakshi.kaagam:
-        return 'நட்பு';
+        return 'நட்பு பட்சி';
       case Pakshi.vallooru:
       case Pakshi.aandhai:
-        return 'பகை';
+        return 'பகை பட்சி';
     }
   }
 
   /// Evaluates the current KOZHLI Panchapakshi condition.
   ///
-  /// KOZHLI அதிகார பட்சி:
-  ///   அரசு = 100%
-  ///   ஊண்  = 75%
-  ///   நடை  = 50%
-  ///
-  /// KOZHLI படுபட்சி:
-  ///   0% / Avoid
-  ///
-  /// Other days:
-  ///   No KOZHLI authority success percentage.
+  /// The relationship shown in the authority summary is the relationship
+  /// of the day's authority bird to KOZHLI. It must NOT be replaced by the
+  /// authority bird's Table-10 role or by the current அந்தர பட்சி.
   static KozhliSuccessResult evaluate({
     required DayRulerInfo dayRuler,
     required Pakshi antharamBird,
     required Thozhil antharamActivity,
   }) {
     final authorityBird = dayRuler.ruler;
-
-    final relationship = relationshipToKozhli(antharamBird);
+    final relationship = relationshipToKozhli(authorityBird);
 
     final isAuthorityDay = authorityBird == kozhli;
     final isPaduDay = dayRuler.subordinate == kozhli;
@@ -97,7 +86,7 @@ class KozhliSuccessRules {
     if (isPaduDay) {
       return KozhliSuccessResult(
         authorityBird: authorityBird,
-        authorityRelationship: 'படுபட்சி',
+        authorityRelationship: relationship,
         isAuthorityDay: false,
         isPaduDay: true,
         percent: 0,
@@ -211,8 +200,7 @@ class KozhliSuccessRules {
     final result = <KozhliSuccessWindow>[];
 
     for (var jamamIndex = 0; jamamIndex < 5; jamamIndex++) {
-      final jamamStart =
-          periodStart.add(jamamDuration * jamamIndex);
+      final jamamStart = periodStart.add(jamamDuration * jamamIndex);
 
       final jamamEnd = jamamIndex == 4
           ? periodEnd
@@ -285,15 +273,11 @@ class KozhliSuccessRules {
         extraTotal - (extraPerAntharam * 5);
 
     return List.generate(5, (i) {
-      final baseMinutes =
-          weightTable[activities[i].tamil] ?? 0;
-
+      final baseMinutes = weightTable[activities[i].tamil] ?? 0;
       final base = Duration(minutes: baseMinutes);
-
       final extra = i == 4
           ? extraPerAntharam + roundingRemainder
           : extraPerAntharam;
-
       return base + extra;
     });
   }
