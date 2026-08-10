@@ -209,7 +209,7 @@ class _DayCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${tamil ? 'இன்றைய அதிகார பட்சி' : 'Today’s authority bird'}: ${ruler.ruler.tamil}  •  ${tamil ? 'கோழியுடன்' : 'With Kozhli'}: ${_relationship(ruler, tamil)}',
+            '${tamil ? 'இன்றைய அதிகார பட்சி' : 'Today’s authority bird'}: ${ruler.ruler.tamil}  •  ${tamil ? 'கோழியுடன்' : 'With Kozhli'}: ${_relationship(ruler.ruler, tamil)}',
             style: const TextStyle(color: Color(0xFFE4AD3C), fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 10),
@@ -248,11 +248,11 @@ class _DayCard extends StatelessWidget {
     );
   }
 
-  /// Uses the same DayRulerRules table as the dashboard/engine.
-  /// This prevents Future Prediction from maintaining a second,
-  /// conflicting relationship table.
-  static String _relationship(DayRulerInfo info, bool tamil) {
-    final relationship = KozhliSuccessRules.relationshipToKozhli(info);
+  /// Uses the workbook's pairwise KOZHLI relationship, not Table-10's
+  /// day-role classification. In particular, both மயில் and காகம் are
+  /// நட்பு for KOZHLI.
+  static String _relationship(Pakshi bird, bool tamil) {
+    final relationship = KozhliSuccessRules.relationshipToKozhli(bird);
 
     if (tamil) {
       return relationship;
@@ -263,8 +263,6 @@ class _DayCard extends StatelessWidget {
         return 'Self';
       case 'நட்பு பட்சி':
         return 'Friend';
-      case 'படுபட்சி':
-        return 'Padu Pakshi';
       case 'பகை பட்சி':
         return 'Enemy';
       default:
