@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../core/day_ruler_rules.dart';
+import '../core/moon_nakshatra_window.dart';
 import '../core/nakshatra_calculator.dart';
 import '../core/thaarai_calculator.dart';
 import '../models/pakshi.dart';
@@ -1104,9 +1105,9 @@ class _RelationChip extends StatelessWidget {
   }
 }
 
-// Relationship is always evaluated from the app's fixed Kozhli (கோழி)
-// reference bird. Therefore மயில் is நட்பு, கோழி is சுயம், காகம் is படுபட்சி,
-// and வல்லூறு / ஆந்தை are பகை பட்சி for this dashboard.
+// Relationship is evaluated from the app's fixed Kozhli (கோழி) reference
+// bird: மயில் is நட்பு, கோழி is சுயம், காகம் is படுபட்சி, and
+// வல்லூறு / ஆந்தை are பகை பட்சி.
 String _kozhliRelationship(Pakshi bird) {
   switch (bird) {
     case Pakshi.kozhi:
