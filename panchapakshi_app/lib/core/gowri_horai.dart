@@ -5,41 +5,113 @@ class GowriResult {
   final bool isGood;
   final DateTime start;
   final DateTime end;
-  const GowriResult(this.name, this.isGood, this.start, this.end);
+
+  const GowriResult({
+    required this.name,
+    required this.isGood,
+    required this.start,
+    required this.end,
+  });
 }
 
-/// Gowri Panchangam runs on the fixed 24-hour clock (not sun-adjusted):
-/// 8 slots of 90 minutes from 06:00 to next-day 06:00.
+class HoraiResult {
+  final String planet;
+  final DateTime start;
+  final DateTime end;
+
+  const HoraiResult({
+    required this.planet,
+    required this.start,
+    required this.end,
+  });
+}
+
+/// Gowri follows the workbook's 8 equal day slots and 8 equal night slots.
+/// Day slots are sunrise -> sunset; night slots are sunset -> next sunrise.
+/// This is intentionally NOT a fixed 90-minute clock table.
 class GowriCalculator {
-  static GowriResult forInstant(DateTime local) {
-    // Anchor the 06:00 boundary for "today" relative to local time.
-    var anchor = DateTime(local.year, local.month, local.day, 6, 0, 0);
-    if (local.isBefore(anchor)) {
-      anchor = anchor.subtract(const Duration(days: 1));
-    }
-    final minutesSinceAnchor = local.difference(anchor).inMinutes;
-    final slotIndex = (minutesSinceAnchor / 90).floor().clamp(0, 15);
-    final weekday = anchor.weekday % 7; // Sun..Sat -> 0..6
-    final name = PanchapakshiRules.gowriTable[slotIndex][weekday];
-    final isGood = PanchapakshiRules.gowriGoodSlots.contains(name);
-    final start = anchor.add(Duration(minutes: slotIndex * 90));
-    final end = start.add(const Duration(minutes: 90));
-    return GowriResult(name, isGood, start, end);
+  static GowriResult forInstant({
+    required DateTime local,
+    required DateTime sunrise,
+    required DateTime sunset,
+    required DateTime nextSunrise,
+    DateTime? previousSunset,
+  }) {
+    final isDay = !local.isBefore(sunrise) && local.isBefore(sunset);
+
+    final periodStart = isDay
+        ? sunrise
+        : (local.isBefore(sunrise)
+            ? (previousSunset ?? sunset.subtract(const Duration(days: 1)))
+            : sunset);
+    final periodEnd = isDay ? sunset : nextSunrise;
+
+    final periodDuration = periodEnd.difference(periodStart);
+    final slotDuration = Duration(
+      microseconds: periodDuration.inMicroseconds ~/ 8,
+    );
+
+    var slotIndex = local
+        .difference(periodStart)
+        .inMicroseconds ~/ slotDuration.inMicroseconds;
+    slotIndex = slotIndex.clamp(0, 7);
+
+    final tableIndex = isDay ? slotIndex : 8 + slotIndex;
+    final weekday = local.weekday % 7;
+    final name = PanchapakshiRules.gowriTable[tableIndex][weekday];
+    final start = periodStart.add(slotDuration * slotIndex);
+    final end = slotIndex == 7 ? periodEnd : start.add(slotDuration);
+
+    return GowriResult(
+      name: name,
+      isGood: PanchapakshiRules.gowriGoodSlots.contains(name),
+      start: start,
+      end: end,
+    );
   }
 }
 
-/// Horai runs on the fixed clock too: 24 one-hour slots from 06:00,
-/// planet order cycling with a weekday-dependent start offset.
+/// Horai follows the workbook's 12 equal day slots and 12 equal night slots.
+/// The planetary sequence remains the standard weekday sequence, but each
+/// slot length is derived from the actual sunrise/sunset interval.
 class HoraiCalculator {
-  static String forInstant(DateTime local) {
-    var anchor = DateTime(local.year, local.month, local.day, 6, 0, 0);
-    if (local.isBefore(anchor)) {
-      anchor = anchor.subtract(const Duration(days: 1));
-    }
-    final hourIndex = local.difference(anchor).inHours.clamp(0, 23);
-    final weekday = anchor.weekday % 7;
+  static HoraiResult forInstant({
+    required DateTime local,
+    required DateTime sunrise,
+    required DateTime sunset,
+    required DateTime nextSunrise,
+    DateTime? previousSunset,
+  }) {
+    final isDay = !local.isBefore(sunrise) && local.isBefore(sunset);
+
+    final periodStart = isDay
+        ? sunrise
+        : (local.isBefore(sunrise)
+            ? (previousSunset ?? sunset.subtract(const Duration(days: 1)))
+            : sunset);
+    final periodEnd = isDay ? sunset : nextSunrise;
+
+    final periodDuration = periodEnd.difference(periodStart);
+    final slotDuration = Duration(
+      microseconds: periodDuration.inMicroseconds ~/ 12,
+    );
+
+    var slotIndex = local
+        .difference(periodStart)
+        .inMicroseconds ~/ slotDuration.inMicroseconds;
+    slotIndex = slotIndex.clamp(0, 11);
+
+    final weekday = local.weekday % 7;
     final startIdx = PanchapakshiRules.horaiStartIndexByWeekday[weekday];
-    final planetIdx = (startIdx + hourIndex) % 7;
-    return PanchapakshiRules.horaiPlanetCycle[planetIdx];
+    final planetIdx = (startIdx + slotIndex) % 7;
+
+    final start = periodStart.add(slotDuration * slotIndex);
+    final end = slotIndex == 11 ? periodEnd : start.add(slotDuration);
+
+    return HoraiResult(
+      planet: PanchapakshiRules.horaiPlanetCycle[planetIdx],
+      start: start,
+      end: end,
+    );
   }
 }
