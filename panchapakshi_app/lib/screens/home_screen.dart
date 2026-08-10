@@ -1106,7 +1106,7 @@ class _RelationChip extends StatelessWidget {
 }
 
 // Relationship is evaluated from the app's fixed Kozhli (கோழி) reference
-// bird: மயில் is நட்பு, கோழி is சுயம், காகம் is படுபட்சி, and
+// bird: மயில் is நட்பு, கோழி is சுயம், காகம் is நட்பு, and
 // வல்லூறு / ஆந்தை are பகை பட்சி.
 String _kozhliRelationship(Pakshi bird) {
   switch (bird) {
@@ -1115,7 +1115,7 @@ String _kozhliRelationship(Pakshi bird) {
     case Pakshi.mayil:
       return 'நட்பு';
     case Pakshi.kaagam:
-      return 'படுபட்சி';
+      return 'நட்பு';
     case Pakshi.vallooru:
     case Pakshi.aandhai:
       return 'பகை பட்சி';
