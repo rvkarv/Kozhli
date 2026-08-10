@@ -242,15 +242,21 @@ class AppState extends ChangeNotifier {
      * instant, not the device's current date when Future/Past mode is
      * active.
      *
-     * The expensive start/end boundary search is only repeated when the
-     * current Nakshatra changes (or when the calculation context changes).
+     * The expensive start/end boundary search is repeated only when the
+     * current star changes or when the selected calculation instant falls
+     * outside the cached window (for example after a Future/Past change).
      */
     final newMoon = NakshatraCalculator.computeCurrent(nowUtc);
     final starChanged = currentMoon?.nakshatraIndex1to27 !=
         newMoon.nakshatraIndex1to27;
     currentMoon = newMoon;
 
-    if (currentMoonWindow == null || starChanged) {
+    final cachedMoonWindow = currentMoonWindow;
+    final outsideCachedWindow = cachedMoonWindow == null ||
+        nowUtc.isBefore(cachedMoonWindow.startUtc) ||
+        !nowUtc.isBefore(cachedMoonWindow.endUtc);
+
+    if (starChanged || outsideCachedWindow) {
       currentMoonWindow = MoonNakshatraWindow.forUtc(nowUtc);
     }
 
