@@ -52,15 +52,11 @@ class PanchapakshiRules {
     'ஊண்': 48, 'துயில்': 36, 'நடை': 30, 'சாவு': 18, 'அரசு': 12,
   };
 
-  /// Returns the correct standard-minute weight table for the given
-  /// paksham/day-night combination — used by PanchapakshiEngine to
-  /// compute the WEIGHTED (not equal-fifths) அந்தரம் durations.
   static Map<String, int> minutesTableFor(Paksham paksham, DayNight dayNight) {
     if (paksham == Paksham.valarpirai) {
       return dayNight == DayNight.day ? waxingDayMinutes : waxingNightMinutes;
-    } else {
-      return dayNight == DayNight.day ? waningDayMinutes : waningNightMinutes;
     }
+    return dayNight == DayNight.day ? waningDayMinutes : waningNightMinutes;
   }
 
   static const List<Pakshi> waxingDayRulerByWeekday = [
@@ -79,155 +75,35 @@ class PanchapakshiRules {
   static const _s = Thozhil.saavu;
 
   static const Map<int, List<List<Thozhil>>> _waxingDay = {
-    0: [
-      [_u, _n, _a, _t, _s],
-      [_n, _a, _t, _s, _u],
-      [_a, _t, _s, _u, _n],
-      [_t, _s, _u, _n, _a],
-      [_s, _u, _n, _a, _t],
-    ],
-    1: [
-      [_s, _u, _n, _a, _t],
-      [_u, _n, _a, _t, _s],
-      [_n, _a, _t, _s, _u],
-      [_a, _t, _s, _u, _n],
-      [_t, _s, _u, _n, _a],
-    ],
-    2: [
-      [_t, _s, _u, _n, _a],
-      [_s, _u, _n, _a, _t],
-      [_u, _n, _a, _t, _s],
-      [_n, _a, _t, _s, _u],
-      [_a, _t, _s, _u, _n],
-    ],
-    3: [
-      [_a, _t, _s, _u, _n],
-      [_t, _s, _u, _n, _a],
-      [_s, _u, _n, _a, _t],
-      [_u, _n, _a, _t, _s],
-      [_n, _a, _t, _s, _u],
-    ],
-    4: [
-      [_n, _a, _t, _s, _u],
-      [_a, _t, _s, _u, _n],
-      [_t, _s, _u, _n, _a],
-      [_s, _u, _n, _a, _t],
-      [_u, _n, _a, _t, _s],
-    ],
+    0: [[_u, _n, _a, _t, _s], [_n, _a, _t, _s, _u], [_a, _t, _s, _u, _n], [_t, _s, _u, _n, _a], [_s, _u, _n, _a, _t]],
+    1: [[_s, _u, _n, _a, _t], [_u, _n, _a, _t, _s], [_n, _a, _t, _s, _u], [_a, _t, _s, _u, _n], [_t, _s, _u, _n, _a]],
+    2: [[_t, _s, _u, _n, _a], [_s, _u, _n, _a, _t], [_u, _n, _a, _t, _s], [_n, _a, _t, _s, _u], [_a, _t, _s, _u, _n]],
+    3: [[_a, _t, _s, _u, _n], [_t, _s, _u, _n, _a], [_s, _u, _n, _a, _t], [_u, _n, _a, _t, _s], [_n, _a, _t, _s, _u]],
+    4: [[_n, _a, _t, _s, _u], [_a, _t, _s, _u, _n], [_t, _s, _u, _n, _a], [_s, _u, _n, _a, _t], [_u, _n, _a, _t, _s]],
   };
 
   static const Map<int, List<List<Thozhil>>> _waxingNight = {
-    0: [
-      [_s, _a, _u, _t, _n],
-      [_n, _s, _a, _u, _t],
-      [_t, _n, _s, _a, _u],
-      [_u, _t, _n, _s, _a],
-      [_a, _u, _t, _n, _s],
-    ],
-    1: [
-      [_n, _s, _a, _u, _t],
-      [_t, _n, _s, _a, _u],
-      [_u, _t, _n, _s, _a],
-      [_a, _u, _t, _n, _s],
-      [_s, _a, _u, _t, _n],
-    ],
-    2: [
-      [_t, _n, _s, _a, _u],
-      [_u, _t, _n, _s, _a],
-      [_a, _u, _t, _n, _s],
-      [_s, _a, _u, _t, _n],
-      [_n, _s, _a, _u, _t],
-    ],
-    3: [
-      [_u, _t, _n, _s, _a],
-      [_a, _u, _t, _n, _s],
-      [_s, _a, _u, _t, _n],
-      [_n, _s, _a, _u, _t],
-      [_t, _n, _s, _a, _u],
-    ],
-    4: [
-      [_a, _u, _t, _n, _s],
-      [_s, _a, _u, _t, _n],
-      [_n, _s, _a, _u, _t],
-      [_t, _n, _s, _a, _u],
-      [_u, _t, _n, _s, _a],
-    ],
+    0: [[_s, _a, _u, _t, _n], [_n, _s, _a, _u, _t], [_t, _n, _s, _a, _u], [_u, _t, _n, _s, _a], [_a, _u, _t, _n, _s]],
+    1: [[_n, _s, _a, _u, _t], [_t, _n, _s, _a, _u], [_u, _t, _n, _s, _a], [_a, _u, _t, _n, _s], [_s, _a, _u, _t, _n]],
+    2: [[_t, _n, _s, _a, _u], [_u, _t, _n, _s, _a], [_a, _u, _t, _n, _s], [_s, _a, _u, _t, _n], [_n, _s, _a, _u, _t]],
+    3: [[_u, _t, _n, _s, _a], [_a, _u, _t, _n, _s], [_s, _a, _u, _t, _n], [_n, _s, _a, _u, _t], [_t, _n, _s, _a, _u]],
+    4: [[_a, _u, _t, _n, _s], [_s, _a, _u, _t, _n], [_n, _s, _a, _u, _t], [_t, _n, _s, _a, _u], [_u, _t, _n, _s, _a]],
   };
 
   static const Map<int, List<List<Thozhil>>> _waningDay = {
-    0: [
-      [_u, _s, _t, _a, _n],
-      [_s, _t, _a, _n, _u],
-      [_t, _a, _n, _u, _s],
-      [_a, _n, _u, _s, _t],
-      [_n, _u, _s, _t, _a],
-    ],
-    1: [
-      [_s, _t, _a, _n, _u],
-      [_t, _a, _n, _u, _s],
-      [_a, _n, _u, _s, _t],
-      [_n, _u, _s, _t, _a],
-      [_u, _s, _t, _a, _n],
-    ],
-    2: [
-      [_t, _a, _n, _u, _s],
-      [_a, _n, _u, _s, _t],
-      [_n, _u, _s, _t, _a],
-      [_u, _s, _t, _a, _n],
-      [_s, _t, _a, _n, _u],
-    ],
-    3: [
-      [_a, _n, _u, _s, _t],
-      [_n, _u, _s, _t, _a],
-      [_u, _s, _t, _a, _n],
-      [_s, _t, _a, _n, _u],
-      [_t, _a, _n, _u, _s],
-    ],
-    4: [
-      [_n, _u, _s, _t, _a],
-      [_u, _s, _t, _a, _n],
-      [_s, _t, _a, _n, _u],
-      [_t, _a, _n, _u, _s],
-      [_a, _n, _u, _s, _t],
-    ],
+    0: [[_u, _s, _t, _a, _n], [_s, _t, _a, _n, _u], [_t, _a, _n, _u, _s], [_a, _n, _u, _s, _t], [_n, _u, _s, _t, _a]],
+    1: [[_s, _t, _a, _n, _u], [_t, _a, _n, _u, _s], [_a, _n, _u, _s, _t], [_n, _u, _s, _t, _a], [_u, _s, _t, _a, _n]],
+    2: [[_t, _a, _n, _u, _s], [_a, _n, _u, _s, _t], [_n, _u, _s, _t, _a], [_u, _s, _t, _a, _n], [_s, _t, _a, _n, _u]],
+    3: [[_a, _n, _u, _s, _t], [_n, _u, _s, _t, _a], [_u, _s, _t, _a, _n], [_s, _t, _a, _n, _u], [_t, _a, _n, _u, _s]],
+    4: [[_n, _u, _s, _t, _a], [_u, _s, _t, _a, _n], [_s, _t, _a, _n, _u], [_t, _a, _n, _u, _s], [_a, _n, _u, _s, _t]],
   };
 
   static const Map<int, List<List<Thozhil>>> _waningNight = {
-    0: [
-      [_a, _s, _n, _t, _u],
-      [_u, _a, _s, _n, _t],
-      [_t, _u, _a, _s, _n],
-      [_n, _t, _u, _a, _s],
-      [_s, _n, _t, _u, _a],
-    ],
-    1: [
-      [_s, _n, _t, _u, _a],
-      [_a, _s, _n, _t, _u],
-      [_u, _a, _s, _n, _t],
-      [_t, _u, _a, _s, _n],
-      [_n, _t, _u, _a, _s],
-    ],
-    2: [
-      [_n, _t, _u, _a, _s],
-      [_s, _n, _t, _u, _a],
-      [_a, _s, _n, _t, _u],
-      [_u, _a, _s, _n, _t],
-      [_t, _u, _a, _s, _n],
-    ],
-    3: [
-      [_t, _u, _a, _s, _n],
-      [_n, _t, _u, _a, _s],
-      [_s, _n, _t, _u, _a],
-      [_a, _s, _n, _t, _u],
-      [_u, _a, _s, _n, _t],
-    ],
-    4: [
-      [_u, _a, _s, _n, _t],
-      [_t, _u, _a, _s, _n],
-      [_n, _t, _u, _a, _s],
-      [_s, _n, _t, _u, _a],
-      [_a, _s, _n, _t, _u],
-    ],
+    0: [[_a, _s, _n, _t, _u], [_u, _a, _s, _n, _t], [_t, _u, _a, _s, _n], [_n, _t, _u, _a, _s], [_s, _n, _t, _u, _a]],
+    1: [[_s, _n, _t, _u, _a], [_a, _s, _n, _t, _u], [_u, _a, _s, _n, _t], [_t, _u, _a, _s, _n], [_n, _t, _u, _a, _s]],
+    2: [[_n, _t, _u, _a, _s], [_s, _n, _t, _u, _a], [_a, _s, _n, _t, _u], [_u, _a, _s, _n, _t], [_t, _u, _a, _s, _n]],
+    3: [[_t, _u, _a, _s, _n], [_n, _t, _u, _a, _s], [_s, _n, _t, _u, _a], [_a, _s, _n, _t, _u], [_u, _a, _s, _n, _t]],
+    4: [[_u, _a, _s, _n, _t], [_t, _u, _a, _s, _n], [_n, _t, _u, _a, _s], [_s, _n, _t, _u, _a], [_a, _s, _n, _t, _u]],
   };
 
   static int weekdayGroup(int dateTimeWeekday, Paksham paksham) {
@@ -238,13 +114,12 @@ class PanchapakshiRules {
       if (w == 4) return 2;
       if (w == 5) return 3;
       return 4;
-    } else {
-      if (w == 0 || w == 2) return 0;
-      if (w == 3) return 1;
-      if (w == 4) return 2;
-      if (w == 5) return 3;
-      return 4;
     }
+    if (w == 0 || w == 2) return 0;
+    if (w == 3) return 1;
+    if (w == 4) return 2;
+    if (w == 5) return 3;
+    return 4;
   }
 
   static Thozhil activityFor({
@@ -259,8 +134,7 @@ class PanchapakshiRules {
         ? (dayNight == DayNight.day ? _waxingDay : _waxingNight)
         : (dayNight == DayNight.day ? _waningDay : _waningNight);
     final row = grid[group]![jamam - 1];
-    final birdIdx = birdOrder.indexOf(bird);
-    return row[birdIdx];
+    return row[birdOrder.indexOf(bird)];
   }
 
   static const List<String> gowriGoodSlots = ['உத்தி', 'லாபம்', 'அமிர்', 'சுகம்', 'தனம்'];
@@ -288,5 +162,10 @@ class PanchapakshiRules {
   static const List<String> horaiPlanetCycle = [
     'சூரியன்', 'சுக்கிரன்', 'புதன்', 'சந்திரன்', 'சனி', 'குரு', 'செவ்வாய்',
   ];
+
+  /// Workbook-verified first Horai planet for the 12 day slots, Sun..Sat.
   static const List<int> horaiStartIndexByWeekday = [0, 3, 6, 2, 5, 1, 4];
+
+  /// Workbook-verified first Horai planet for the 12 night slots, Sun..Sat.
+  static const List<int> horaiNightStartIndexByWeekday = [5, 1, 4, 0, 3, 6, 2];
 }
