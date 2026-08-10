@@ -241,9 +241,18 @@ class AppState extends ChangeNotifier {
      * Moon/Nakshatra calculation is based on the selected calculation
      * instant, not the device's current date when Future/Past mode is
      * active.
+     *
+     * The expensive start/end boundary search is only repeated when the
+     * current Nakshatra changes (or when the calculation context changes).
      */
-    currentMoon = NakshatraCalculator.computeCurrent(nowUtc);
-    currentMoonWindow = MoonNakshatraWindow.forUtc(nowUtc);
+    final newMoon = NakshatraCalculator.computeCurrent(nowUtc);
+    final starChanged = currentMoon?.nakshatraIndex1to27 !=
+        newMoon.nakshatraIndex1to27;
+    currentMoon = newMoon;
+
+    if (currentMoonWindow == null || starChanged) {
+      currentMoonWindow = MoonNakshatraWindow.forUtc(nowUtc);
+    }
 
     notifyListeners();
   }
