@@ -72,8 +72,8 @@ class GowriCalculator {
 }
 
 /// Horai follows the workbook's 12 equal day slots and 12 equal night slots.
-/// The planetary sequence remains the standard weekday sequence, but each
-/// slot length is derived from the actual sunrise/sunset interval.
+/// The first planet is different for day and night and is taken directly
+/// from the workbook's weekday tables.
 class HoraiCalculator {
   static HoraiResult forInstant({
     required DateTime local,
@@ -102,7 +102,9 @@ class HoraiCalculator {
     slotIndex = slotIndex.clamp(0, 11);
 
     final weekday = local.weekday % 7;
-    final startIdx = PanchapakshiRules.horaiStartIndexByWeekday[weekday];
+    final startIdx = isDay
+        ? PanchapakshiRules.horaiStartIndexByWeekday[weekday]
+        : PanchapakshiRules.horaiNightStartIndexByWeekday[weekday];
     final planetIdx = (startIdx + slotIndex) % 7;
 
     final start = periodStart.add(slotDuration * slotIndex);
