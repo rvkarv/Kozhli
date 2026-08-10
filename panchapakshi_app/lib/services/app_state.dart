@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../core/moon_nakshatra_window.dart';
 import '../core/nakshatra_calculator.dart';
 import '../core/panchapakshi_engine.dart';
 import '../core/thaarai_calculator.dart';
@@ -31,6 +32,14 @@ class AppState extends ChangeNotifier {
 
   // Automatic: recalculated every tick from real Moon position.
   MoonPosition? currentMoon;
+
+  // Current Nakshatra start/end, calculated from the same Moon engine.
+  MoonNakshatraWindow? currentMoonWindow;
+
+  // Local display offset for the selected location at the current calculation
+  // instant. Chennai is +05:30 and has no DST; the same IANA-derived offset is
+  // used here as the dashboard display conversion.
+  Duration? currentLocationOffset;
 
   // Future/Past prediction:
   //
@@ -164,6 +173,8 @@ class AppState extends ChangeNotifier {
       localDateTime: override,
     );
 
+    currentLocationOffset = offset;
+
     late DateTime nowAtLocation;
     late DateTime nowUtc;
 
@@ -232,6 +243,7 @@ class AppState extends ChangeNotifier {
      * active.
      */
     currentMoon = NakshatraCalculator.computeCurrent(nowUtc);
+    currentMoonWindow = MoonNakshatraWindow.forUtc(nowUtc);
 
     notifyListeners();
   }
