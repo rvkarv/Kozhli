@@ -41,32 +41,30 @@ class KozhliSuccessWindow {
 class KozhliSuccessRules {
   static const Pakshi kozhli = Pakshi.kozhi;
 
-  /// Determines KOZHLI's relationship with the day's authority bird.
+  /// Fixed relationship of each bird to KOZHLI for the Future Prediction
+  /// display. This is intentionally NOT derived from the day's ruler table.
   ///
-  /// Priority:
-  /// 1. KOZHLI is the authority bird -> அதிகார பட்சி
-  /// 2. KOZHLI is subordinate -> படுபட்சி
-  /// 3. KOZHLI is an enemy -> பகை பட்சி
-  /// 4. KOZHLI is a friend -> நட்பு பட்சி
-  /// 5. Otherwise -> நடுநிலை
+  /// KOZHLI reference relationship:
+  ///   KOZHLI    -> சுயம்
+  ///   MAYIL     -> நட்பு பட்சி
+  ///   KAAGAM    -> படுபட்சி
+  ///   VALLOORU -> பகை பட்சி
+  ///   AANDHAI   -> பகை பட்சி
+  ///
+  /// The day-ruler table is still used separately for determining the actual
+  /// authority/subordinate bird and KOZHLI Padu day.
   static String relationshipToKozhli(DayRulerInfo info) {
-    if (info.ruler == kozhli) {
-      return 'சுயம்';
+    switch (info.ruler) {
+      case Pakshi.kozhi:
+        return 'சுயம்';
+      case Pakshi.mayil:
+        return 'நட்பு பட்சி';
+      case Pakshi.kaagam:
+        return 'படுபட்சி';
+      case Pakshi.vallooru:
+      case Pakshi.aandhai:
+        return 'பகை பட்சி';
     }
-
-    if (info.subordinate == kozhli) {
-      return 'படுபட்சி';
-    }
-
-    if (info.enemies.contains(kozhli)) {
-      return 'பகை பட்சி';
-    }
-
-    if (info.friend == kozhli) {
-      return 'நட்பு பட்சி';
-    }
-
-    return 'நடுநிலை';
   }
 
   /// Evaluates the current KOZHLI Panchapakshi condition.
