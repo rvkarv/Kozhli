@@ -5,6 +5,7 @@ class ThaaraiCard extends StatelessWidget {
   final String title;
   final ThaaraiResult? thaarai;
   final VoidCallback onSetup;
+
   const ThaaraiCard({
     super.key,
     required this.title,
@@ -19,11 +20,16 @@ class ThaaraiCard extends StatelessWidget {
         child: ListTile(
           title: Text(title),
           subtitle: const Text('பிறந்த நட்சத்திரம் இன்னும் அமைக்கப்படவில்லை'),
-          trailing: TextButton(onPressed: onSetup, child: const Text('அமை')),
+          trailing: TextButton(
+            onPressed: onSetup,
+            child: const Text('அமை'),
+          ),
         ),
       );
     }
+
     final t = thaarai!;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -33,16 +39,39 @@ class ThaaraiCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('$title (${t.birthNakshatra} → ${t.todayNakshatra})',
-                    style: Theme.of(context).textTheme.titleSmall),
-                TextButton(onPressed: onSetup, child: const Text('மாற்று')),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                TextButton(
+                  onPressed: onSetup,
+                  child: const Text('மாற்று'),
+                ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(t.category.tamil,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              '${t.birthNakshatra} → ${t.todayNakshatra}',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(t.category.effect, style: const TextStyle(color: Colors.grey)),
+            Text(
+              '${t.ordinalFromBirth} — ${t.category.tamil}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t.category.effect,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       ),
