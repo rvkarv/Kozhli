@@ -11,9 +11,6 @@ class PanchapakshiEngine {
     required Pakshi bird,
     required DayNight dayNight,
   }) {
-    // The workbook's per-bird sheets use the forward bird cycle for day
-    // and the reverse bird cycle for night.  For KOZHLI on a Saturday night
-    // this gives: கோழி → காகம் → ஆந்தை → வல்லூறு → மயில்.
     final cycle = dayNight == DayNight.day
         ? PanchapakshiRules.birdOrder
         : PanchapakshiRules.birdOrder.reversed.toList();
@@ -51,9 +48,6 @@ class PanchapakshiEngine {
       periodEnd = nextSunrise;
     }
 
-    // IMPORTANT: the workbook's night sections are keyed to the current
-    // calendar weekday.  Therefore Saturday 01:50 is Saturday night, not
-    // Friday night.  Do not derive this from sunrise.subtract(1 day).
     final rulingWeekday = nowLocal.weekday;
     final dayRuler = DayRulerRules.forWeekday(rulingWeekday, paksham);
 
@@ -79,9 +73,6 @@ class PanchapakshiEngine {
       dateTimeWeekday: rulingWeekday,
     );
 
-    // Antharam durations remain weighted by the workbook's activity-minute
-    // table, with the actual location's real jamam length applied through
-    // the same flat adjustment used by the existing workbook formula.
     final antharamBirds = _antharamBirds(
       bird: bird,
       dayNight: dayNight,
@@ -131,16 +122,15 @@ class PanchapakshiEngine {
       cumulative += antharamDurations[i];
     }
 
-    final antharamEnd =
-        antharamStart.add(antharamDurations[antharamIndex]);
+    final antharamEnd = antharamStart.add(antharamDurations[antharamIndex]);
     final antharam = antharamIndex + 1;
     final antharamBird = antharamBirds[antharamIndex];
     final antharamActivity = antharamActivities[antharamIndex];
     final remaining = antharamEnd.difference(nowLocal);
 
-    Thozhil nextActivity;
-    DateTime nextActivityStart;
-    Pakshi nextAntharamBird;
+    late Thozhil nextActivity;
+    late DateTime nextActivityStart;
+    late Pakshi nextAntharamBird;
 
     if (antharamIndex < 4) {
       nextAntharamBird = antharamBirds[antharamIndex + 1];
@@ -184,17 +174,30 @@ class PanchapakshiEngine {
       antharamActivity: antharamActivity,
     );
 
-    final gowri = GowriCalculator.forInstant(nowLocal);
-    final horai = HoraiCalculator.forInstant(nowLocal);
-
-    return PanchapakshiState(
-      asOf: nowLocal,
-      bird: bird,
-      paksham: paksham,
-      dayNight: dayNight,
+    final gowri = GowriCalculator.forInstant(
+      local: nowLocal,
       sunrise: sunrise,
       sunset: sunset,
       nextSunrise: nextSunrise,
+      previousSunset: previousSunset,
+    );
+
+    final horai = HoraiCalculator.forInstant(
+      local: nowLocal,
+      sunrise: sunrise,
+      sunset: sunset,
+      nextSunrise: nextSunrise,
+      previousSunset: previousSunset,
+    );
+
+    return PanchapakshiState(
+      asOf: nowLocal,
+      sunrise: sunrise,
+      sunset: sunset,
+      nextSunrise: nextSunrise,
+      bird: bird,
+      paksham: paksham,
+      dayNight: dayNight,
       rulingWeekday: rulingWeekday,
       authorityBird: success.authorityBird,
       authorityRelationship: success.authorityRelationship,
@@ -217,7 +220,11 @@ class PanchapakshiEngine {
       nextAntharamBird: nextAntharamBird,
       gowriName: gowri.name,
       gowriIsGood: gowri.isGood,
-      horaiPlanet: horai,
+      gowriStart: gowri.start,
+      gowriEnd: gowri.end,
+      horaiPlanet: horai.planet,
+      horaiStart: horai.start,
+      horaiEnd: horai.end,
     );
   }
 }
