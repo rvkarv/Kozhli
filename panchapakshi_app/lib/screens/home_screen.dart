@@ -12,6 +12,11 @@ import 'birth_details_screen.dart';
 import 'forecast_screen.dart';
 import 'location_picker_screen.dart';
 
+/// Main live dashboard.
+///
+/// The dashboard deliberately keeps each verified item in one place:
+/// current Moon star/rasi, Panchapakshi activity, Thaarai, Gowri and Horai.
+/// Forecast/prediction screens are not changed here.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -36,9 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final app = context.read<AppState>();
       await app.tryRestoreLastLocation();
-      if (app.location == null) {
-        await app.useGps();
-      }
+      if (app.location == null) await app.useGps();
     });
   }
 
@@ -119,11 +122,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       location: app.location?.label,
                       timeFmt: timeFmt,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _BirthSummary(
                       birthNakshatra: app.birthNakshatra,
                       birthLagnaNakshatra: app.birthLagnaNakshatra,
-                      paksham: s.paksham,
                       onEdit: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -131,117 +133,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _DayAuthorityRow(
-                      weekday: s.rulingWeekday,
-                      paksham: s.paksham,
-                      bird: app.bird,
-                    ),
-                    const SizedBox(height: 12),
-                    _JamamCard(
-                      activity: s.jamamActivity,
-                      jamam: s.jamam,
-                      start: s.jamamStart,
-                      end: s.jamamEnd,
+                    const SizedBox(height: 10),
+                    if (app.currentMoon != null)
+                      _CurrentAstroCard(moon: app.currentMoon!),
+                    const SizedBox(height: 10),
+                    _PanchapakshiCard(
+                      state: s,
                       timeFmt: timeFmt,
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _AntharamPanel(
-                            title: 'தற்போதைய அந்தர பட்சி',
-                            bird: s.antharamBird,
-                            activity: s.antharamActivity,
-                            start: s.antharamStart,
-                            end: s.antharamEnd,
-                            relation: _kozhliRelationship(s.antharamBird),
-                            timeFmt: timeFmt,
-                            accent: Colors.redAccent,
-                          ),
+                    _ThaaraiSummaryCard(
+                      rasiThaarai: app.thaarai,
+                      lagnaThaarai: app.thaaraiLagna,
+                      onSetup: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BirthDetailsScreen(),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _AntharamPanel(
-                            title: 'அடுத்த அந்தர பட்சி',
-                            bird: s.nextAntharamBird,
-                            activity: s.nextActivity,
-                            start: s.nextActivityStart,
-                            end: null,
-                            relation: _kozhliRelationship(s.nextAntharamBird),
-                            timeFmt: timeFmt,
-                            accent: _green,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    if (app.currentMoon != null)
-                      _NakshatraPanel(moon: app.currentMoon!),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _ThaaraiPanel(
-                            title: 'தாராபலம் (பிறந்த ராசி\nநட்சத்திரத்திற்கு)',
-                            result: app.thaarai,
-                            accent: const Color(0xFFB8E37A),
-                            onSetup: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const BirthDetailsScreen(),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _ThaaraiPanel(
-                            title: 'தாராபலம் (பிறந்த லக்ன\nநட்சத்திரத்திற்கு)',
-                            result: app.thaaraiLagna,
-                            accent: _cyan,
-                            onSetup: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const BirthDetailsScreen(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    _TimingSummary(
+                      state: s,
+                      timeFmt: timeFmt,
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _TimePanel(
-                            title: 'தற்போதைய கௌரி நல்ல நேரம்',
-                            value: s.gowriName,
-                            start: s.gowriStart,
-                            end: s.gowriEnd,
-                            accent: s.gowriIsGood ? _green : Colors.redAccent,
-                            icon: Icons.auto_awesome,
-                            timeFmt: timeFmt,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _TimePanel(
-                            title: 'தற்போதைய கிரக ஓரை',
-                            value: s.horaiPlanet,
-                            start: s.horaiStart,
-                            end: s.horaiEnd,
-                            accent: _cyan,
-                            icon: Icons.nightlight_round,
-                            timeFmt: timeFmt,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _SunPanel(
                       sunrise: s.sunrise,
                       sunset: s.sunset,
@@ -321,21 +237,16 @@ class _HeaderStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF101010),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF33291B)),
-      ),
+    return _DarkCard(
+      borderColor: _HomeScreenState._gold.withOpacity(.45),
       child: Row(
         children: [
           const Icon(
             Icons.access_time,
             color: _HomeScreenState._gold,
-            size: 20,
+            size: 21,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +265,7 @@ class _HeaderStatus extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: _HomeScreenState._muted,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
               ],
@@ -376,13 +287,11 @@ class _HeaderStatus extends StatelessWidget {
 class _BirthSummary extends StatelessWidget {
   final String? birthNakshatra;
   final String? birthLagnaNakshatra;
-  final Paksham paksham;
   final VoidCallback onEdit;
 
   const _BirthSummary({
     required this.birthNakshatra,
     required this.birthLagnaNakshatra,
-    required this.paksham,
     required this.onEdit,
   });
 
@@ -400,128 +309,16 @@ class _BirthSummary extends StatelessWidget {
           const _Divider(),
           Expanded(
             child: _MiniValue(
-              label: 'பிறந்த பக்ஷம்',
-              value: paksham == Paksham.valarpirai ? 'வளர்பிறை' : 'தேய்பிறை',
-            ),
-          ),
-          const _Divider(),
-          Expanded(
-            child: _MiniValue(
               label: 'பிறந்த லக்ன நட்சத்திரம்',
               value: birthLagnaNakshatra ?? '—',
             ),
           ),
           IconButton(
             onPressed: onEdit,
-            icon: const Icon(Icons.edit, color: _HomeScreenState._gold, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DayAuthorityRow extends StatelessWidget {
-  final int weekday;
-  final Paksham paksham;
-  final Pakshi bird;
-
-  const _DayAuthorityRow({
-    required this.weekday,
-    required this.paksham,
-    required this.bird,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final info = DayRulerRules.forWeekday(weekday, paksham);
-    return Row(
-      children: [
-        Expanded(
-          child: _AuthorityCard(
-            title: 'கோழி அதிகார நாள்',
-            topLabel: 'அதிகார பட்சி',
-            bird: info.ruler,
-            isMine: info.ruler == bird,
-            color: _HomeScreenState._purple,
-            weekday: _weekdayTamil(weekday),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AuthorityCard(
-            title: 'கோழி படுபட்சி நாள்',
-            topLabel: 'படுபட்சி',
-            bird: info.subordinate,
-            isMine: info.subordinate == bird,
-            color: _HomeScreenState._cyan,
-            weekday: _weekdayTamil(weekday),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AuthorityCard extends StatelessWidget {
-  final String title;
-  final String topLabel;
-  final Pakshi bird;
-  final bool isMine;
-  final Color color;
-  final String weekday;
-
-  const _AuthorityCard({
-    required this.title,
-    required this.topLabel,
-    required this.bird,
-    required this.isMine,
-    required this.color,
-    required this.weekday,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _DarkCard(
-      borderColor: color.withOpacity(.55),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
+            icon: const Icon(
+              Icons.edit,
               color: _HomeScreenState._gold,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                isMine ? Icons.arrow_upward : Icons.arrow_downward,
-                color: color,
-                size: 26,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  bird.tamil,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Divider(color: Color(0xFF303030)),
-          Text(
-            '$topLabel  •  $weekday',
-            style: const TextStyle(
-              color: _HomeScreenState._muted,
-              fontSize: 12,
+              size: 18,
             ),
           ),
         ],
@@ -530,129 +327,10 @@ class _AuthorityCard extends StatelessWidget {
   }
 }
 
-class _JamamCard extends StatelessWidget {
-  final Thozhil activity;
-  final int jamam;
-  final DateTime start;
-  final DateTime end;
-  final DateFormat timeFmt;
-
-  const _JamamCard({
-    required this.activity,
-    required this.jamam,
-    required this.start,
-    required this.end,
-    required this.timeFmt,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _DarkCard(
-      borderColor: _HomeScreenState._gold.withOpacity(.65),
-      child: Row(
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _HomeScreenState._gold.withOpacity(.65),
-                width: 2,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: const Text('🐓', style: TextStyle(fontSize: 38)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'கோழி தற்போதைய தொழில்  •  ஜாமம் $jamam',
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  activity.tamil,
-                  style: const TextStyle(
-                    color: _HomeScreenState._green,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${timeFmt.format(start)} – ${timeFmt.format(end)}',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.white70, size: 30),
-        ],
-      ),
-    );
-  }
-}
-
-class _AntharamPanel extends StatelessWidget {
-  final String title;
-  final Pakshi bird;
-  final Thozhil activity;
-  final DateTime start;
-  final DateTime? end;
-  final String relation;
-  final DateFormat timeFmt;
-  final Color accent;
-
-  const _AntharamPanel({
-    required this.title,
-    required this.bird,
-    required this.activity,
-    required this.start,
-    required this.end,
-    required this.relation,
-    required this.timeFmt,
-    required this.accent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _DarkCard(
-      borderColor: accent.withOpacity(.5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${bird.tamil} – ${activity.tamil}',
-            style: TextStyle(color: accent, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            end == null
-                ? 'தொடங்கும் நேரம்: ${timeFmt.format(start)}'
-                : '${timeFmt.format(start)} – ${timeFmt.format(end!)}',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          _RelationChip(label: relation, color: accent),
-        ],
-      ),
-    );
-  }
-}
-
-class _NakshatraPanel extends StatelessWidget {
+class _CurrentAstroCard extends StatelessWidget {
   final MoonPosition moon;
 
-  const _NakshatraPanel({required this.moon});
+  const _CurrentAstroCard({required this.moon});
 
   @override
   Widget build(BuildContext context) {
@@ -661,39 +339,45 @@ class _NakshatraPanel extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 62,
+            height: 62,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: _HomeScreenState._purple.withOpacity(.7)),
+              border: Border.all(
+                color: _HomeScreenState._purple.withOpacity(.7),
+              ),
             ),
             alignment: Alignment.center,
             child: const Text(
               '✦',
-              style: TextStyle(color: _HomeScreenState._purple, fontSize: 34),
+              style: TextStyle(
+                color: _HomeScreenState._purple,
+                fontSize: 30,
+              ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'தற்போதைய நட்சத்திரம்',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
-                  '${moon.nakshatraName} – பாதம் ${moon.pada}',
+                  '${moon.nakshatraName} — பாதம் ${moon.pada}',
                   style: const TextStyle(
                     color: _HomeScreenState._purple,
-                    fontSize: 22,
+                    fontSize: 21,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'ராசி: ${moon.rasiName}',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ],
             ),
@@ -704,43 +388,400 @@ class _NakshatraPanel extends StatelessWidget {
   }
 }
 
-class _ThaaraiPanel extends StatelessWidget {
+class _PanchapakshiCard extends StatelessWidget {
+  final PanchapakshiState state;
+  final DateFormat timeFmt;
+
+  const _PanchapakshiCard({
+    required this.state,
+    required this.timeFmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ruler = DayRulerRules.forWeekday(
+      state.rulingWeekday,
+      state.paksham,
+    );
+
+    return Column(
+      children: [
+        _DarkCard(
+          borderColor: _HomeScreenState._gold.withOpacity(.65),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _HomeScreenState._gold.withOpacity(.7),
+                    width: 2,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: const Text('🐓', style: TextStyle(fontSize: 32)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'கோழி தற்போதைய தொழில்  •  ஜாமம் ${state.jamam}',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      state.jamamActivity.tamil,
+                      style: const TextStyle(
+                        color: _HomeScreenState._green,
+                        fontSize: 23,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${timeFmt.format(state.jamamStart)} – ${timeFmt.format(state.jamamEnd)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _AntharamCard(
+                title: 'தற்போதைய அந்தர பட்சி',
+                bird: state.antharamBird,
+                activity: state.antharamActivity,
+                start: state.antharamStart,
+                end: state.antharamEnd,
+                accent: Colors.redAccent,
+                timeFmt: timeFmt,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _AntharamCard(
+                title: 'அடுத்த அந்தர பட்சி',
+                bird: state.nextAntharamBird,
+                activity: state.nextActivity,
+                start: state.nextActivityStart,
+                end: null,
+                accent: _HomeScreenState._green,
+                timeFmt: timeFmt,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _DarkCard(
+          borderColor: _HomeScreenState._cyan.withOpacity(.45),
+          child: Row(
+            children: [
+              Expanded(
+                child: _AuthorityMini(
+                  title: 'அதிகார பட்சி',
+                  bird: ruler.ruler,
+                  mine: ruler.ruler == Pakshi.kozhi,
+                ),
+              ),
+              const _Divider(),
+              Expanded(
+                child: _AuthorityMini(
+                  title: 'படுபட்சி',
+                  bird: ruler.subordinate,
+                  mine: ruler.subordinate == Pakshi.kozhi,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AntharamCard extends StatelessWidget {
   final String title;
-  final ThaaraiResult? result;
+  final Pakshi bird;
+  final Thozhil activity;
+  final DateTime start;
+  final DateTime? end;
   final Color accent;
+  final DateFormat timeFmt;
+
+  const _AntharamCard({
+    required this.title,
+    required this.bird,
+    required this.activity,
+    required this.start,
+    required this.end,
+    required this.accent,
+    required this.timeFmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _DarkCard(
+      borderColor: accent.withOpacity(.45),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${bird.tamil} — ${activity.tamil}',
+            style: TextStyle(
+              color: accent,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            end == null
+                ? 'தொடங்கும் நேரம்: ${timeFmt.format(start)}'
+                : '${timeFmt.format(start)} – ${timeFmt.format(end!)}',
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+          ),
+          const SizedBox(height: 5),
+          _RelationChip(
+            label: _kozhliRelationship(bird),
+            color: accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthorityMini extends StatelessWidget {
+  final String title;
+  final Pakshi bird;
+  final bool mine;
+
+  const _AuthorityMini({
+    required this.title,
+    required this.bird,
+    required this.mine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Icon(
+            mine ? Icons.arrow_upward : Icons.arrow_downward,
+            color: mine ? _HomeScreenState._green : _HomeScreenState._muted,
+            size: 22,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _HomeScreenState._muted,
+                    fontSize: 10,
+                  ),
+                ),
+                Text(
+                  bird.tamil,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThaaraiSummaryCard extends StatelessWidget {
+  final ThaaraiResult? rasiThaarai;
+  final ThaaraiResult? lagnaThaarai;
   final VoidCallback onSetup;
 
-  const _ThaaraiPanel({
-    required this.title,
-    required this.result,
-    required this.accent,
+  const _ThaaraiSummaryCard({
+    required this.rasiThaarai,
+    required this.lagnaThaarai,
     required this.onSetup,
   });
 
   @override
   Widget build(BuildContext context) {
     return _DarkCard(
-      borderColor: accent.withOpacity(.55),
+      borderColor: const Color(0xFFB8E37A).withOpacity(.55),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 13)),
-          const SizedBox(height: 8),
-          if (result == null)
-            TextButton(onPressed: onSetup, child: const Text('அமைக்கவும்'))
-          else ...[
-            Text(
-              result!.category.tamil,
-              style: TextStyle(color: accent, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              result!.category.effect,
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome,
+                color: Color(0xFFB8E37A),
+                size: 20,
+              ),
+              const SizedBox(width: 7),
+              const Expanded(
+                child: Text(
+                  'தாரை',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onSetup,
+                child: const Text('மாற்று'),
+              ),
+            ],
+          ),
+          const Divider(color: Color(0xFF303030)),
+          _ThaaraiLine(
+            label: 'பிறந்த ராசி நட்சத்திரம்',
+            result: rasiThaarai,
+            accent: const Color(0xFFB8E37A),
+          ),
+          const SizedBox(height: 10),
+          _ThaaraiLine(
+            label: 'பிறந்த லக்ன நட்சத்திரம்',
+            result: lagnaThaarai,
+            accent: _HomeScreenState._cyan,
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _ThaaraiLine extends StatelessWidget {
+  final String label;
+  final ThaaraiResult? result;
+  final Color accent;
+
+  const _ThaaraiLine({
+    required this.label,
+    required this.result,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (result == null) {
+      return Row(
+        children: [
+          Expanded(
+            child: Text(
+              '$label: அமைக்கப்படவில்லை',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final t = result!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: _HomeScreenState._muted, fontSize: 11),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${t.birthNakshatra} → ${t.todayNakshatra}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${t.ordinalFromBirth} — ${t.category.tamil}',
+          style: TextStyle(
+            color: accent,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          t.category.effect,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ],
+    );
+  }
+}
+
+class _TimingSummary extends StatelessWidget {
+  final PanchapakshiState state;
+  final DateFormat timeFmt;
+
+  const _TimingSummary({
+    required this.state,
+    required this.timeFmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _TimePanel(
+            title: 'தற்போதைய கௌரி நல்ல நேரம்',
+            value: state.gowriName,
+            start: state.gowriStart,
+            end: state.gowriEnd,
+            accent: state.gowriIsGood
+                ? _HomeScreenState._green
+                : Colors.redAccent,
+            icon: Icons.auto_awesome,
+            timeFmt: timeFmt,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _TimePanel(
+            title: 'தற்போதைய கிரக ஓரை',
+            value: state.horaiPlanet,
+            start: state.horaiStart,
+            end: state.horaiEnd,
+            accent: _HomeScreenState._cyan,
+            icon: Icons.nightlight_round,
+            timeFmt: timeFmt,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -773,29 +814,33 @@ class _TimePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: accent, size: 20),
-              const SizedBox(width: 6),
+              Icon(icon, color: accent, size: 19),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
                     color: _HomeScreenState._gold,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Text(
             value,
-            style: TextStyle(color: accent, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: accent,
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             '${timeFmt.format(start)} – ${timeFmt.format(end)}',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(color: Colors.white, fontSize: 11),
           ),
         ],
       ),
@@ -819,18 +864,21 @@ class _SunPanel extends StatelessWidget {
     return _DarkCard(
       child: Row(
         children: [
-          const Icon(Icons.wb_sunny_outlined, color: _HomeScreenState._gold),
+          const Icon(
+            Icons.wb_sunny_outlined,
+            color: _HomeScreenState._gold,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'சூரிய உதயம்  ${timeFmt.format(sunrise)}',
-              style: const TextStyle(color: Colors.white),
+              'உதயம்  ${timeFmt.format(sunrise)}',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
           Expanded(
             child: Text(
-              'சூரிய அஸ்தமனம்  ${timeFmt.format(sunset)}',
-              style: const TextStyle(color: Colors.white),
+              'அஸ்தமனம்  ${timeFmt.format(sunset)}',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
         ],
@@ -847,7 +895,13 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['டாஷ்போர்டு', 'நாள்காட்டி', 'நல்ல நேரம்', 'வரலாறு', 'அமைப்புகள்'];
+    const labels = [
+      'டாஷ்போர்டு',
+      'நாள்காட்டி',
+      'நல்ல நேரம்',
+      'வரலாறு',
+      'அமைப்புகள்',
+    ];
     const icons = [
       Icons.home,
       Icons.calendar_month,
@@ -882,7 +936,8 @@ class _BottomNav extends StatelessWidget {
                     Text(
                       labels[index],
                       style: TextStyle(
-                        color: active ? _HomeScreenState._gold : Colors.white70,
+                        color:
+                            active ? _HomeScreenState._gold : Colors.white70,
                         fontSize: 10,
                       ),
                     ),
@@ -910,7 +965,9 @@ class _DarkCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141414),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor ?? const Color(0xFF2C2C2C)),
+        border: Border.all(
+          color: borderColor ?? const Color(0xFF2C2C2C),
+        ),
       ),
       child: child,
     );
@@ -934,7 +991,10 @@ class _MiniValue extends StatelessWidget {
             label,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: _HomeScreenState._muted, fontSize: 10),
+            style: const TextStyle(
+              color: _HomeScreenState._muted,
+              fontSize: 10,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
@@ -943,7 +1003,7 @@ class _MiniValue extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -958,7 +1018,11 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 42, color: const Color(0xFF333333));
+    return Container(
+      width: 1,
+      height: 42,
+      color: const Color(0xFF333333),
+    );
   }
 }
 
@@ -971,7 +1035,7 @@ class _RelationChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: color.withOpacity(.10),
         borderRadius: BorderRadius.circular(20),
@@ -979,7 +1043,11 @@ class _RelationChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
