@@ -209,7 +209,7 @@ class _DayCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${tamil ? 'இன்றைய அதிகார பட்சி' : 'Today’s authority bird'}: ${ruler.ruler.tamil}  •  ${tamil ? 'கோழியுடன்' : 'With Kozhli'}: ${_relationship(ruler.ruler, tamil)}',
+            '${tamil ? 'இன்றைய அதிகார பட்சி' : 'Today’s authority bird'}: ${ruler.ruler.tamil}  •  ${tamil ? 'கோழியுடன்' : 'With Kozhli'}: ${_relationship(ruler, tamil)}',
             style: const TextStyle(color: Color(0xFFE4AD3C), fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 10),
@@ -248,32 +248,27 @@ class _DayCard extends StatelessWidget {
     );
   }
 
-  // The relationship label is always from the fixed KOZHLI reference bird.
-  // It must NOT be derived from the day's subordinate/enemy fields.
-  static String _relationship(Pakshi authorityBird, bool tamil) {
+  /// Uses the same DayRulerRules table as the dashboard/engine.
+  /// This prevents Future Prediction from maintaining a second,
+  /// conflicting relationship table.
+  static String _relationship(DayRulerInfo info, bool tamil) {
+    final relationship = KozhliSuccessRules.relationshipToKozhli(info);
+
     if (tamil) {
-      switch (authorityBird) {
-        case Pakshi.kozhi:
-          return 'சுயம்';
-        case Pakshi.mayil:
-          return 'நட்பு பட்சி';
-        case Pakshi.kaagam:
-          return 'படுபட்சி';
-        case Pakshi.vallooru:
-        case Pakshi.aandhai:
-          return 'பகை பட்சி';
-      }
+      return relationship;
     }
-    switch (authorityBird) {
-      case Pakshi.kozhi:
+
+    switch (relationship) {
+      case 'சுயம்':
         return 'Self';
-      case Pakshi.mayil:
+      case 'நட்பு பட்சி':
         return 'Friend';
-      case Pakshi.kaagam:
+      case 'படுபட்சி':
         return 'Padu Pakshi';
-      case Pakshi.vallooru:
-      case Pakshi.aandhai:
+      case 'பகை பட்சி':
         return 'Enemy';
+      default:
+        return 'Neutral';
     }
   }
 }
