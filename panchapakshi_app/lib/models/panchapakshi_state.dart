@@ -2,13 +2,12 @@ import 'pakshi.dart';
 
 class PanchapakshiState {
   final DateTime asOf;
-  final Pakshi bird;
-  final Paksham paksham;
-  final DayNight dayNight;
-
   final DateTime sunrise;
   final DateTime sunset;
   final DateTime nextSunrise;
+  final Pakshi bird;
+  final Paksham paksham;
+  final DayNight dayNight;
 
   final int rulingWeekday;
   final Pakshi authorityBird;
@@ -36,16 +35,21 @@ class PanchapakshiState {
 
   final String gowriName;
   final bool gowriIsGood;
+  final DateTime gowriStart;
+  final DateTime gowriEnd;
+
   final String horaiPlanet;
+  final DateTime horaiStart;
+  final DateTime horaiEnd;
 
   const PanchapakshiState({
     required this.asOf,
-    required this.bird,
-    required this.paksham,
-    required this.dayNight,
     required this.sunrise,
     required this.sunset,
     required this.nextSunrise,
+    required this.bird,
+    required this.paksham,
+    required this.dayNight,
     required this.rulingWeekday,
     required this.authorityBird,
     required this.authorityRelationship,
@@ -68,6 +72,10 @@ class PanchapakshiState {
     required this.nextAntharamBird,
     required this.gowriName,
     required this.gowriIsGood,
+    required this.gowriStart,
+    required this.gowriEnd,
     required this.horaiPlanet,
+    required this.horaiStart,
+    required this.horaiEnd,
   });
 }
