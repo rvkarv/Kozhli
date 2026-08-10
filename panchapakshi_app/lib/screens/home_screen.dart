@@ -15,8 +15,8 @@ import 'location_picker_screen.dart';
 /// Main live dashboard.
 ///
 /// The dashboard deliberately keeps each verified item in one place:
-/// current Moon star/rasi, Panchapakshi activity, Thaarai, Gowri and Horai.
-/// Forecast/prediction screens are not changed here.
+/// current Moon star/rasi and timing, Panchapakshi activity, Thaarai,
+/// Gowri and Horai. Forecast/prediction screens are not changed here.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -91,11 +91,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Search City / இடம் தேடு',
             icon: const Icon(Icons.language, color: _gold),
-            onPressed: () => app.setLocale(
-              app.locale.languageCode == 'ta'
-                  ? const Locale('en')
-                  : const Locale('ta'),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LocationPickerScreen(),
+              ),
             ),
           ),
           IconButton(
@@ -135,7 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     if (app.currentMoon != null)
-                      _CurrentAstroCard(moon: app.currentMoon!),
+                      _CurrentAstroCard(
+                        moon: app.currentMoon!,
+                        window: app.currentMoonWindow,
+                        offset: app.currentLocationOffset,
+                      ),
                     const SizedBox(height: 10),
                     _PanchapakshiCard(
                       state: s,
@@ -176,6 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute(builder: (_) => const ForecastScreen()),
             );
+          } else if (index == 4) {
+            _showMenu(context, app);
           }
         },
       ),
@@ -204,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: const Icon(Icons.search, color: _gold),
               title: const Text(
-                'இடம் தேடு',
+                'நகரம் தேடு / இடம் தேர்வு செய்',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -214,6 +222,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(
                     builder: (_) => const LocationPickerScreen(),
                   ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.translate, color: _gold),
+              title: const Text(
+                'மொழி / Language',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                app.setLocale(
+                  app.locale.languageCode == 'ta'
+                      ? const Locale('en')
+                      : const Locale('ta'),
                 );
               },
             ),
@@ -329,14 +352,24 @@ class _BirthSummary extends StatelessWidget {
 
 class _CurrentAstroCard extends StatelessWidget {
   final MoonPosition moon;
+  final MoonNakshatraWindow? window;
+  final Duration? offset;
 
-  const _CurrentAstroCard({required this.moon});
+  const _CurrentAstroCard({
+    required this.moon,
+    required this.window,
+    required this.offset,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final displayOffset = offset ?? Duration.zero;
+    final boundaryFmt = DateFormat('dd-MMM hh:mm:ss a');
+
     return _DarkCard(
       borderColor: _HomeScreenState._purple.withOpacity(.65),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 62,
@@ -379,6 +412,23 @@ class _CurrentAstroCard extends StatelessWidget {
                   'ராசி: ${moon.rasiName}',
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
+                if (window != null) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    'தொடக்கம்: ${boundaryFmt.format(window!.startUtc.add(displayOffset))}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    'முடிவு: ${boundaryFmt.format(window!.endUtc.add(displayOffset))}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -481,6 +531,7 @@ class _PanchapakshiCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
+        // Kept immediately before the Thaarai section as requested.
         _DarkCard(
           borderColor: _HomeScreenState._cyan.withOpacity(.45),
           child: Row(
@@ -1053,6 +1104,9 @@ class _RelationChip extends StatelessWidget {
   }
 }
 
+// Relationship is always evaluated from the app's fixed Kozhli (கோழி)
+// reference bird. Therefore மயில் is நட்பு, கோழி is சுயம், காகம் is படுபட்சி,
+// and வல்லூறு / ஆந்தை are பகை பட்சி for this dashboard.
 String _kozhliRelationship(Pakshi bird) {
   switch (bird) {
     case Pakshi.kozhi:
