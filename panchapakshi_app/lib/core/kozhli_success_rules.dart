@@ -41,29 +41,32 @@ class KozhliSuccessWindow {
 class KozhliSuccessRules {
   static const Pakshi kozhli = Pakshi.kozhi;
 
-  /// Fixed relationship of each bird to KOZHLI for the Future Prediction
-  /// display. This is intentionally NOT derived from the day's ruler table.
+  /// Fixed relationship of each அந்தர பட்சி to KOZHLI for the
+  /// Future Prediction / அந்தர பட்சி display.
   ///
-  /// KOZHLI reference relationship:
+  /// IMPORTANT: this is the workbook's "உறவு" column and is NOT the same
+  /// thing as the day's Table-10 roles (அதிகார பட்சி / படு பட்சி /
+  /// சம பட்சி / பகை பட்சி / நட்பு பட்சி).
+  ///
+  /// From the KOZHLI sheets in the verified workbook:
   ///   KOZHLI    -> சுயம்
-  ///   MAYIL     -> நட்பு பட்சி
-  ///   KAAGAM    -> படுபட்சி
-  ///   VALLOORU -> பகை பட்சி
-  ///   AANDHAI   -> பகை பட்சி
+  ///   MAYIL     -> நட்பு
+  ///   KAAGAM    -> நட்பு
+  ///   VALLOORU -> பகை
+  ///   AANDHAI  -> பகை
   ///
-  /// The day-ruler table is still used separately for determining the actual
-  /// authority/subordinate bird and KOZHLI Padu day.
-  static String relationshipToKozhli(DayRulerInfo info) {
-    switch (info.ruler) {
+  /// Therefore both மயில் and காகம் can correctly appear as நட்பு for
+  /// KOZHLI. They must not be replaced by their Table-10 day-role labels.
+  static String relationshipToKozhli(Pakshi antarBird) {
+    switch (antarBird) {
       case Pakshi.kozhi:
         return 'சுயம்';
       case Pakshi.mayil:
-        return 'நட்பு பட்சி';
       case Pakshi.kaagam:
-        return 'படுபட்சி';
+        return 'நட்பு';
       case Pakshi.vallooru:
       case Pakshi.aandhai:
-        return 'பகை பட்சி';
+        return 'பகை';
     }
   }
 
@@ -86,7 +89,7 @@ class KozhliSuccessRules {
   }) {
     final authorityBird = dayRuler.ruler;
 
-    final relationship = relationshipToKozhli(dayRuler);
+    final relationship = relationshipToKozhli(antharamBird);
 
     final isAuthorityDay = authorityBird == kozhli;
     final isPaduDay = dayRuler.subordinate == kozhli;
