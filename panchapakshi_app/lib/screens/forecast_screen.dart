@@ -30,12 +30,47 @@ class _ForecastScreenState extends State<ForecastScreen> {
     if (picked != null) setState(() => _startDate = picked);
   }
 
+  Future<void> _selectLanguage(BuildContext context, AppState app) async {
+    final selected = await showDialog<Locale>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Language / மொழி'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Text('தமிழ்', style: TextStyle(fontSize: 18)),
+              title: const Text('தமிழ்'),
+              onTap: () => Navigator.pop(context, const Locale('ta')),
+            ),
+            ListTile(
+              leading: const Text('EN', style: TextStyle(fontSize: 18)),
+              title: const Text('English'),
+              onTap: () => Navigator.pop(context, const Locale('en')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) app.setLocale(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final loc = app.location;
+    final tamil = app.locale.languageCode == 'ta';
+
     if (loc == null) {
-      return const Scaffold(body: Center(child: Text('இடம் தேர்வு செய்யவும்')));
+      return Scaffold(
+        backgroundColor: const Color(0xFF101010),
+        body: Center(
+          child: Text(
+            tamil ? 'இடம் தேர்வு செய்யவும்' : 'Please select a location',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
     }
 
     final dateFmt = DateFormat('EEE, d MMM yyyy');
@@ -44,9 +79,15 @@ class _ForecastScreenState extends State<ForecastScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF101010),
         foregroundColor: Colors.white,
-        title: const Text('Future Prediction'),
+        title: Text(tamil ? 'எதிர்கால கணிப்பு' : 'Future Prediction'),
         actions: [
           IconButton(
+            tooltip: tamil ? 'மொழி தேர்வு' : 'Select language',
+            icon: const Icon(Icons.translate, color: Color(0xFFE4AD3C)),
+            onPressed: () => _selectLanguage(context, app),
+          ),
+          IconButton(
+            tooltip: tamil ? 'தேதி தேர்வு' : 'Select date',
             icon: const Icon(Icons.edit_calendar, color: Color(0xFFE4AD3C)),
             onPressed: () => _pickDate(context),
           ),
@@ -63,7 +104,12 @@ class _ForecastScreenState extends State<ForecastScreen> {
                 children: [
                   const Icon(Icons.calendar_today, color: Color(0xFFE4AD3C), size: 18),
                   const SizedBox(width: 8),
-                  Text('தொடக்க தேதி: ${dateFmt.format(_startDate)}', style: const TextStyle(color: Colors.white)),
+                  Text(
+                    tamil
+                        ? 'தொடக்க தேதி: ${dateFmt.format(_startDate)}'
+                        : 'Start date: ${dateFmt.format(_startDate)}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ],
               ),
             );
@@ -75,6 +121,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
             lat: loc.lat,
             lng: loc.lng,
             dateFmt: dateFmt,
+            tamil: tamil,
           );
         },
       ),
@@ -88,6 +135,7 @@ class _DayCard extends StatelessWidget {
   final double lat;
   final double lng;
   final DateFormat dateFmt;
+  final bool tamil;
 
   const _DayCard({
     required this.date,
@@ -95,6 +143,7 @@ class _DayCard extends StatelessWidget {
     required this.lat,
     required this.lng,
     required this.dateFmt,
+    required this.tamil,
   });
 
   @override
@@ -155,56 +204,64 @@ class _DayCard extends StatelessWidget {
           Text(dateFmt.format(date), style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(
-            '${paksham == Paksham.valarpirai ? 'வளர்பிறை' : 'தேய்பிறை'}  •  உதயம் ${timeFmt.format(window.sunrise)}  •  அஸ்தமனம் ${timeFmt.format(window.sunset)}',
+            '${paksham == Paksham.valarpirai ? (tamil ? 'வளர்பிறை' : 'Waxing') : (tamil ? 'தேய்பிறை' : 'Waning')}  •  ${tamil ? 'உதயம்' : 'Sunrise'} ${timeFmt.format(window.sunrise)}  •  ${tamil ? 'அஸ்தமனம்' : 'Sunset'} ${timeFmt.format(window.sunset)}',
             style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const SizedBox(height: 8),
           Text(
-            'இன்றைய அதிகார பட்சி: ${ruler.ruler.tamil}  •  கோழியுடன்: ${_relationship(ruler, bird)}',
+            '${tamil ? 'இன்றைய அதிகார பட்சி' : 'Today’s authority bird'}: ${ruler.ruler.tamil}  •  ${tamil ? 'கோழியுடன்' : 'With Kozhli'}: ${_relationship(ruler.ruler)}',
             style: const TextStyle(color: Color(0xFFE4AD3C), fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 10),
           if (isPadu)
             _PredictionBanner(
               color: const Color(0xFFE65353),
-              title: 'KOZHLI படுபட்சி',
-              value: '0% SUCCESS — தவிர்க்கவும்',
+              title: tamil ? 'KOZHLI படுபட்சி' : 'KOZHLI Padu Pakshi',
+              value: tamil ? '0% வெற்றி — தவிர்க்கவும்' : '0% SUCCESS — Avoid',
             )
           else if (isAuthority) ...[
-            const _PredictionBanner(
-              color: Color(0xFF80D94E),
-              title: 'KOZHLI அதிகார நாள்',
-              value: 'அரசு 100%  •  ஊண் 75%  •  நடை 50%',
+            _PredictionBanner(
+              color: const Color(0xFF80D94E),
+              title: tamil ? 'KOZHLI அதிகார நாள்' : 'KOZHLI Authority Day',
+              value: tamil ? 'அரசு 100%  •  ஊண் 75%  •  நடை 50%' : 'Ruling 100%  •  Eating 75%  •  Walking 50%',
             ),
             const SizedBox(height: 8),
             if (dayWindows.isNotEmpty) ...[
-              const Text('☀️ பகல் வெற்றி நேரங்கள்', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(tamil ? '☀️ பகல் வெற்றி நேரங்கள்' : '☀️ Day success periods', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
-              ...dayWindows.map((w) => _WindowRow(window: w, timeFmt: timeFmt)),
+              ...dayWindows.map((w) => _WindowRow(window: w, timeFmt: timeFmt, tamil: tamil)),
             ],
             if (nightWindows.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Text('🌙 இரவு வெற்றி நேரங்கள்', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(tamil ? '🌙 இரவு வெற்றி நேரங்கள்' : '🌙 Night success periods', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
-              ...nightWindows.map((w) => _WindowRow(window: w, timeFmt: timeFmt)),
+              ...nightWindows.map((w) => _WindowRow(window: w, timeFmt: timeFmt, tamil: tamil)),
             ],
           ] else
-            const _PredictionBanner(
-              color: Color(0xFF9B8DFF),
-              title: 'சாதாரண நாள்',
-              value: 'KOZHLI அதிகார பட்சி இல்லை',
+            _PredictionBanner(
+              color: const Color(0xFF9B8DFF),
+              title: tamil ? 'சாதாரண நாள்' : 'Normal Day',
+              value: tamil ? 'KOZHLI அதிகார பட்சி இல்லை' : 'KOZHLI is not the authority bird',
             ),
         ],
       ),
     );
   }
 
-  static String _relationship(DayRulerInfo info, Pakshi bird) {
-    if (info.ruler == bird) return 'சுயம்';
-    if (info.subordinate == bird) return 'படுபட்சி';
-    if (info.enemies.contains(bird)) return 'பகை பட்சி';
-    if (info.friend == bird) return 'நட்பு பட்சி';
-    return 'நடுநிலை';
+  // The relationship label is always from the fixed KOZHLI reference bird.
+  // It must NOT be derived from the day's subordinate/enemy fields.
+  static String _relationship(Pakshi authorityBird) {
+    switch (authorityBird) {
+      case Pakshi.kozhi:
+        return 'சுயம்';
+      case Pakshi.mayil:
+        return 'நட்பு பட்சி';
+      case Pakshi.kaagam:
+        return 'படுபட்சி';
+      case Pakshi.vallooru:
+      case Pakshi.aandhai:
+        return 'பகை பட்சி';
+    }
   }
 }
 
@@ -234,7 +291,8 @@ class _PredictionBanner extends StatelessWidget {
 class _WindowRow extends StatelessWidget {
   final KozhliSuccessWindow window;
   final DateFormat timeFmt;
-  const _WindowRow({required this.window, required this.timeFmt});
+  final bool tamil;
+  const _WindowRow({required this.window, required this.timeFmt, required this.tamil});
 
   @override
   Widget build(BuildContext context) {
@@ -244,12 +302,13 @@ class _WindowRow extends StatelessWidget {
       50 => const Color(0xFFE4AD3C),
       _ => const Color(0xFFE65353),
     };
+    final activity = tamil ? window.activity.tamil : window.activity.english;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           Expanded(child: Text('${timeFmt.format(window.start)} – ${timeFmt.format(window.end)}', style: const TextStyle(color: Colors.white70, fontSize: 12))),
-          Text(window.activity.tamil, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(activity, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           const SizedBox(width: 8),
           Text('${window.percent}%', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
