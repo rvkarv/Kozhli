@@ -29,8 +29,18 @@ class PanchapakshiEngine {
   }) {
     final paksham = MoonPhase.paskhamFor(nowUtc);
 
-    final isDay = nowLocal.isAfter(sunrise) && nowLocal.isBefore(sunset);
+    // Panchapakshi day follows sunrise-to-sunrise, not the civil calendar
+    // date. Therefore, before today's sunrise the active Panchapakshi day
+    // still belongs to yesterday's weekday. Example: Monday 05:34 AM,
+    // before Monday sunrise, is still Sunday for Panchapakshi rules.
     final isBeforeTodaySunrise = nowLocal.isBefore(sunrise);
+    final rulingDate = isBeforeTodaySunrise
+        ? nowLocal.subtract(const Duration(days: 1))
+        : nowLocal;
+    final rulingWeekday = rulingDate.weekday;
+
+    final isDay =
+        !nowLocal.isBefore(sunrise) && nowLocal.isBefore(sunset);
     final dayNight = isDay ? DayNight.day : DayNight.night;
 
     late DateTime periodStart;
@@ -40,7 +50,8 @@ class PanchapakshiEngine {
       periodStart = sunrise;
       periodEnd = sunset;
     } else if (isBeforeTodaySunrise) {
-      final prevSunset = previousSunset ?? sunset.subtract(const Duration(hours: 24));
+      final prevSunset =
+          previousSunset ?? sunset.subtract(const Duration(hours: 24));
       periodStart = prevSunset;
       periodEnd = sunrise;
     } else {
@@ -48,7 +59,6 @@ class PanchapakshiEngine {
       periodEnd = nextSunrise;
     }
 
-    final rulingWeekday = nowLocal.weekday;
     final dayRuler = DayRulerRules.forWeekday(rulingWeekday, paksham);
 
     final periodLength = periodEnd.difference(periodStart);
@@ -122,7 +132,8 @@ class PanchapakshiEngine {
       cumulative += antharamDurations[i];
     }
 
-    final antharamEnd = antharamStart.add(antharamDurations[antharamIndex]);
+    final antharamEnd =
+        antharamStart.add(antharamDurations[antharamIndex]);
     final antharam = antharamIndex + 1;
     final antharamBird = antharamBirds[antharamIndex];
     final antharamActivity = antharamActivities[antharamIndex];
