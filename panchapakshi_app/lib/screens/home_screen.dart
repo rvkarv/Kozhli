@@ -233,18 +233,56 @@ class _HomeScreenState extends State<HomeScreen> {
                 'மொழி / Language',
                 style: TextStyle(color: Colors.white),
               ),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                app.setLocale(
-                  app.locale.languageCode == 'ta'
-                      ? const Locale('en')
-                      : const Locale('ta'),
+                final selected = await showDialog<Locale>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Language / மொழி'),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          _LanguageChoice('தமிழ்', Locale('ta')),
+                          _LanguageChoice('हिन्दी', Locale('hi')),
+                          _LanguageChoice('తెలుగు', Locale('te')),
+                          _LanguageChoice('ಕನ್ನಡ', Locale('kn')),
+                          _LanguageChoice('മലയാളം', Locale('ml')),
+                          _LanguageChoice('मराठी', Locale('mr')),
+                          _LanguageChoice('বাংলা', Locale('bn')),
+                          _LanguageChoice('ગુજરાતી', Locale('gu')),
+                          _LanguageChoice('ਪੰਜਾਬੀ', Locale('pa')),
+                          _LanguageChoice('অসমীয়া', Locale('as')),
+                          _LanguageChoice('ଓଡ଼ିଆ', Locale('or')),
+                          _LanguageChoice('اردو', Locale('ur')),
+                          _LanguageChoice('English', Locale('en')),
+                        ],
+                      ),
+                    ),
+                  ),
                 );
+                if (selected != null) app.setLocale(selected);
               },
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _LanguageChoice extends StatelessWidget {
+  final String label;
+  final Locale locale;
+
+  const _LanguageChoice(this.label, this.locale);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      onTap: () => Navigator.pop(context, locale),
     );
   }
 }
