@@ -1,0 +1,35 @@
+name: Fix Thaarai reference colors
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Use exact Thaarai reference red and green') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply reference colors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('panchapakshi_app/lib/screens/home_screen.dart')
+          s = p.read_text()
+          old = """Color _thaaraiColor(int ordinal) {\n  const red = {1, 3, 5, 7, 9, 10, 12, 14, 16, 18, 19, 21, 23, 25};\n  return red.contains(ordinal)\n      ? _HomeScreenState._danger\n      : _HomeScreenState._green;\n}"""
+          new = """Color _thaaraiColor(int ordinal) {\n  const red = {1, 3, 5, 7, 9, 10, 12, 14, 16, 18, 19, 21, 23, 25};\n  return red.contains(ordinal)\n      ? const Color(0xFFC00000)\n      : const Color(0xFF2BF543);\n}"""
+          if old not in s:
+              raise SystemExit('Thaarai color helper not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add panchapakshi_app/lib/screens/home_screen.dart
+          git rm .github/workflows/fix-thaarai-colors.yml
+          git commit -m 'Use exact Thaarai reference red and green'
+          git push
