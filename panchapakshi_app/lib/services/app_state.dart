@@ -37,8 +37,7 @@ class AppState extends ChangeNotifier {
   MoonNakshatraWindow? currentMoonWindow;
 
   // Local display offset for the selected location at the current calculation
-  // instant. Chennai is +05:30 and has no DST; the same IANA-derived offset is
-  // used here as the dashboard display conversion.
+  // instant. The IANA-derived offset is used here as the dashboard display conversion.
   Duration? currentLocationOffset;
 
   // Future/Past prediction:
@@ -100,14 +99,32 @@ class AppState extends ChangeNotifier {
   Future<void> tryRestoreLastLocation() async {
     final last = await LocationService.lastKnown();
 
-    if (last != null) {
+    // A GPS-derived location can become stale when the user travels. Refresh
+    // it from the device GPS instead of treating the cached coordinates as
+    // the current place. A manually selected place remains persistent.
+    if (last != null && !last.isDeviceLocal) {
       location = last;
-
       _recompute();
-
       _startTicking();
-
       notifyListeners();
+      return;
+    }
+
+    try {
+      location = await LocationService.getGpsLocation();
+      _recompute();
+      _startTicking();
+      notifyListeners();
+      return;
+    } catch (_) {
+      // If GPS is unavailable, keep the previous GPS-derived location as a
+      // safe fallback rather than losing the last usable place entirely.
+      if (last != null) {
+        location = last;
+        _recompute();
+        _startTicking();
+        notifyListeners();
+      }
     }
   }
 
@@ -157,38 +174,20 @@ class AppState extends ChangeNotifier {
       return;
     }
 
-    /*
-     * IMPORTANT TIMEZONE LOGIC
-     *
-     * For Future/Past mode, the offset MUST be calculated using the
-     * selected local date/time. This allows IANA timezone rules to
-     * determine whether DST was active on that particular date.
-     *
-     * For live mode, the current date/time is used.
-     */
     final override = overridePickedLocal;
-
-    final offset = LocationService.effectiveOffset(
-      loc,
-      localDateTime: override,
-    );
-
-    currentLocationOffset = offset;
 
     late DateTime nowAtLocation;
     late DateTime nowUtc;
+    late Duration offset;
 
     if (override != null) {
-      /*
-       * override is a wall-clock time at the selected place.
-       *
-       * We intentionally construct it as a UTC DateTime here so that
-       * the existing calculation engine receives a date/time whose
-       * numeric fields represent the selected local wall clock.
-       *
-       * The actual UTC instant is then obtained by applying the
-       * date-specific IANA timezone offset calculated above.
-       */
+      // Future/Past mode: override is explicitly a wall-clock value at the
+      // selected place. IANA rules determine the offset for that date/time.
+      offset = LocationService.effectiveOffset(
+        loc,
+        localDateTime: override,
+      );
+
       nowAtLocation = DateTime.utc(
         override.year,
         override.month,
@@ -200,23 +199,28 @@ class AppState extends ChangeNotifier {
 
       nowUtc = nowAtLocation.subtract(offset);
     } else {
-      /*
-       * Live mode:
-       *
-       * Start from the actual UTC clock and convert it using the
-       * selected place's current IANA timezone offset.
-       */
+      // Live mode: start from one true UTC instant, then convert that instant
+      // through the SELECTED PLACE'S IANA timezone. Never interpret the
+      // device's local clock as the selected place's clock.
       nowUtc = DateTime.now().toUtc();
+      final local = LocationService.currentLocalDateTime(
+        loc,
+        utcNow: nowUtc,
+      );
 
-      nowAtLocation = nowUtc.add(offset);
+      offset = local.timeZoneOffset;
+      nowAtLocation = DateTime.utc(
+        local.year,
+        local.month,
+        local.day,
+        local.hour,
+        local.minute,
+        local.second,
+      );
     }
 
-    /*
-     * Resolve the IANA timezone once for the selected location.
-     *
-     * buildDayWindow receives it so sunrise/sunset calculations use
-     * the same location timezone context.
-     */
+    currentLocationOffset = offset;
+
     final timeZoneId = LocationService.timezoneIdForLocation(loc);
 
     final window = LocationService.buildDayWindow(
@@ -237,15 +241,8 @@ class AppState extends ChangeNotifier {
       previousSunset: window.previousSunset,
     );
 
-    /*
-     * Moon/Nakshatra calculation is based on the selected calculation
-     * instant, not the device's current date when Future/Past mode is
-     * active.
-     *
-     * The expensive start/end boundary search is repeated only when the
-     * current star changes or when the selected calculation instant falls
-     * outside the cached window (for example after a Future/Past change).
-     */
+    // Moon/Nakshatra calculation is based on the selected calculation
+    // instant, not the device's current date when Future/Past mode is active.
     final newMoon = NakshatraCalculator.computeCurrent(nowUtc);
     final starChanged = currentMoon?.nakshatraIndex1to27 !=
         newMoon.nakshatraIndex1to27;
