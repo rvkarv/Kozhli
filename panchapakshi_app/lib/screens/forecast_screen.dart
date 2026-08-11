@@ -99,6 +99,56 @@ class _ForecastScreenState extends State<ForecastScreen> {
               onTap: () => Navigator.pop(context, const Locale('ur')),
             ),
             ListTile(
+              leading: const Text('कॉशुर / کٲشُر', style: TextStyle(fontSize: 18)),
+              title: const Text('Kashmiri / कश्मीरी'),
+              onTap: () => Navigator.pop(context, const Locale('ks')),
+            ),
+            ListTile(
+              leading: const Text('कोंकणी', style: TextStyle(fontSize: 18)),
+              title: const Text('Konkani / कोंकणी'),
+              onTap: () => Navigator.pop(context, const Locale('kok')),
+            ),
+            ListTile(
+              leading: const Text('মৈতৈলোন্', style: TextStyle(fontSize: 18)),
+              title: const Text('Meitei / মৈতৈলোন্'),
+              onTap: () => Navigator.pop(context, const Locale('mni')),
+            ),
+            ListTile(
+              leading: const Text('संस्कृतम्', style: TextStyle(fontSize: 18)),
+              title: const Text('Sanskrit / संस्कृतम्'),
+              onTap: () => Navigator.pop(context, const Locale('sa')),
+            ),
+            ListTile(
+              leading: const Text('नेपाली', style: TextStyle(fontSize: 18)),
+              title: const Text('Nepali / नेपाली'),
+              onTap: () => Navigator.pop(context, const Locale('ne')),
+            ),
+            ListTile(
+              leading: const Text('मैथिली', style: TextStyle(fontSize: 18)),
+              title: const Text('Maithili / मैथिली'),
+              onTap: () => Navigator.pop(context, const Locale('mai')),
+            ),
+            ListTile(
+              leading: const Text('डोगरी', style: TextStyle(fontSize: 18)),
+              title: const Text('Dogri / डोगरी'),
+              onTap: () => Navigator.pop(context, const Locale('doi')),
+            ),
+            ListTile(
+              leading: const Text('बड़ो', style: TextStyle(fontSize: 18)),
+              title: const Text('Bodo / बड़ो'),
+              onTap: () => Navigator.pop(context, const Locale('brx')),
+            ),
+            ListTile(
+              leading: const Text('ᱥᱟᱱᱛᱟᱲᱤ', style: TextStyle(fontSize: 18)),
+              title: const Text('Santali / ᱥᱟᱱᱛᱟᱲᱤ'),
+              onTap: () => Navigator.pop(context, const Locale('sat')),
+            ),
+            ListTile(
+              leading: const Text('सिन्धी', style: TextStyle(fontSize: 18)),
+              title: const Text('Sindhi / सिन्धी'),
+              onTap: () => Navigator.pop(context, const Locale('sd')),
+            ),
+            ListTile(
               leading: const Text('EN', style: TextStyle(fontSize: 18)),
               title: const Text('English'),
               onTap: () => Navigator.pop(context, const Locale('en')),
