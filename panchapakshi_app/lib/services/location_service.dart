@@ -11,16 +11,7 @@ class ResolvedLocation {
   final String label;
   final double lat;
   final double lng;
-
-  /// True when this location was obtained from the device GPS.
   final bool isDeviceLocal;
-
-  /// IANA timezone identifier for this geographic location.
-  ///
-  /// Examples:
-  /// America/Chicago
-  /// America/Indiana/Indianapolis
-  /// Asia/Kolkata
   final String? timeZoneId;
 
   const ResolvedLocation({
@@ -48,82 +39,53 @@ class DayWindow {
 
 class LocationService {
   static const _prefsKey = 'panchapakshi_last_location';
-
   static bool _timezoneMapperInitialized = false;
 
-  /// Initialise the offline latitude/longitude -> IANA timezone polygon
-  /// database used by lat_lng_to_timezone.
   static void _ensureTimezoneMapperInitialized() {
-    if (_timezoneMapperInitialized) {
-      return;
-    }
-
+    if (_timezoneMapperInitialized) return;
     tz_mapper.initPolyArray();
     _timezoneMapperInitialized = true;
   }
 
-  /// Determine the IANA timezone for a geographic coordinate.
-  ///
-  /// This is deliberately based on geographic timezone polygons rather
-  /// than longitude / 15. The returned identifier is then used with the
-  /// IANA timezone database for date-specific DST and UTC-offset rules.
   static String? timezoneIdForCoordinates({
     required double lat,
     required double lng,
   }) {
     try {
       _ensureTimezoneMapperInitialized();
-
       final result = tz_mapper.latLngToTimezoneString(lat, lng).trim();
-
       if (result.isEmpty ||
           result.toLowerCase() == 'unknown' ||
           result.toLowerCase() == 'uninhabited') {
         return null;
       }
-
       TimezoneService.location(result);
-
       return result;
     } catch (_) {
       return null;
     }
   }
 
-  /// Return the IANA timezone for the supplied location.
-  ///
-  /// If the stored timezone is unavailable or invalid, determine it again
-  /// from the latitude/longitude.
   static String? timezoneIdForLocation(ResolvedLocation loc) {
     final stored = loc.timeZoneId?.trim();
-
     if (stored != null && stored.isNotEmpty) {
       try {
         TimezoneService.location(stored);
         return stored;
-      } catch (_) {
-        // Fall through to coordinate lookup.
-      }
+      } catch (_) {}
     }
-
-    return timezoneIdForCoordinates(
-      lat: loc.lat,
-      lng: loc.lng,
-    );
+    return timezoneIdForCoordinates(lat: loc.lat, lng: loc.lng);
   }
 
   static Future<ResolvedLocation> getGpsLocation() async {
     var permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       throw Exception('Location permission denied');
     }
-
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw Exception('Location services are disabled');
     }
@@ -133,25 +95,19 @@ class LocationService {
     );
 
     String label = 'Current location';
-
     try {
       final placemarks = await placemarkFromCoordinates(
         pos.latitude,
         pos.longitude,
       );
-
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-
-        label = [
-          p.locality,
-          p.administrativeArea,
-          p.country,
-        ].where((s) => s != null && s.isNotEmpty).join(', ');
+        label = [p.locality, p.administrativeArea, p.country]
+            .where((s) => s != null && s.isNotEmpty)
+            .join(', ');
       }
     } catch (_) {
-      label =
-          '${pos.latitude.toStringAsFixed(3)}, '
+      label = '${pos.latitude.toStringAsFixed(3)}, '
           '${pos.longitude.toStringAsFixed(3)}';
     }
 
@@ -167,29 +123,23 @@ class LocationService {
       isDeviceLocal: true,
       timeZoneId: timeZoneId,
     );
-
     await _cache(loc);
-
     return loc;
   }
 
   static Future<List<ResolvedLocation>> searchPlace(String query) async {
     final locations = await locationFromAddress(query);
-
     final results = <ResolvedLocation>[];
 
     for (final loc in locations.take(5)) {
       String label = query;
-
       try {
         final placemarks = await placemarkFromCoordinates(
           loc.latitude,
           loc.longitude,
         );
-
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
-
           label = [
             p.locality,
             p.subAdministrativeArea,
@@ -203,7 +153,6 @@ class LocationService {
         lat: loc.latitude,
         lng: loc.longitude,
       );
-
       results.add(
         ResolvedLocation(
           label: label,
@@ -214,64 +163,41 @@ class LocationService {
         ),
       );
     }
-
     return results;
   }
 
   static Future<void> _cache(ResolvedLocation loc) async {
     final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString(
-      _prefsKey,
-      _encode(loc),
-    );
+    await prefs.setString(_prefsKey, _encode(loc));
   }
 
   static Future<ResolvedLocation?> lastKnown() async {
     final prefs = await SharedPreferences.getInstance();
-
     final raw = prefs.getString(_prefsKey);
-
-    if (raw == null) {
-      return null;
-    }
-
+    if (raw == null) return null;
     return _decode(raw);
   }
 
-  static String _encode(ResolvedLocation l) {
-    return [
-      l.label,
-      l.lat.toString(),
-      l.lng.toString(),
-      l.isDeviceLocal.toString(),
-      l.timeZoneId ?? '',
-    ].join('|');
-  }
+  static String _encode(ResolvedLocation l) => [
+        l.label,
+        l.lat.toString(),
+        l.lng.toString(),
+        l.isDeviceLocal.toString(),
+        l.timeZoneId ?? '',
+      ].join('|');
 
   static ResolvedLocation? _decode(String raw) {
     final parts = raw.split('|');
-
-    if (parts.length < 3) {
-      return null;
-    }
-
+    if (parts.length < 3) return null;
     final lat = double.tryParse(parts[1]);
     final lng = double.tryParse(parts[2]);
-
-    if (lat == null || lng == null) {
-      return null;
-    }
+    if (lat == null || lng == null) return null;
 
     String? timeZoneId;
-
     if (parts.length > 4 && parts[4].trim().isNotEmpty) {
       timeZoneId = parts[4].trim();
     } else {
-      timeZoneId = timezoneIdForCoordinates(
-        lat: lat,
-        lng: lng,
-      );
+      timeZoneId = timezoneIdForCoordinates(lat: lat, lng: lng);
     }
 
     return ResolvedLocation(
@@ -283,23 +209,14 @@ class LocationService {
     );
   }
 
-  /// Return the timezone offset for the specified geographic location.
-  ///
-  /// When [localDateTime] is supplied, the IANA timezone rules for that
-  /// local wall-clock date/time are used. When it is omitted, the offset
-  /// is resolved from the actual current UTC instant. This is critical:
-  /// the device's local clock must never be interpreted as the selected
-  /// place's local clock.
-  ///
-  /// [utcNow] is injectable for deterministic regression tests and must be
-  /// a true UTC instant when supplied.
+  /// Resolve the UTC offset for the selected place at a specific date/time.
+  /// IANA rules, including DST and historical changes, are always preferred.
   static Duration effectiveOffset(
     ResolvedLocation loc, {
     DateTime? localDateTime,
     DateTime? utcNow,
   }) {
     final timeZoneId = timezoneIdForLocation(loc);
-
     if (timeZoneId != null) {
       try {
         if (localDateTime != null) {
@@ -312,80 +229,57 @@ class LocationService {
             localDateTime.minute,
             localDateTime.second,
           );
-
-          return Duration(
-            seconds: localZoneDateTime.timeZoneOffset.inSeconds,
-          );
+          return Duration(seconds: localZoneDateTime.timeZoneOffset.inSeconds);
         }
 
         final instant = (utcNow ?? DateTime.now().toUtc()).toUtc();
-
         return TimezoneService.offsetAtUtc(
           ianaName: timeZoneId,
           utc: instant,
         );
-      } catch (_) {
-        // Continue to fallback below.
-      }
+      } catch (_) {}
     }
 
-    if (loc.isDeviceLocal) {
-      return DateTime.now().timeZoneOffset;
-    }
-
+    if (loc.isDeviceLocal) return DateTime.now().timeZoneOffset;
     return Duration.zero;
   }
 
-  /// Return the current wall-clock date/time for the selected place.
-  ///
-  /// This always starts from a UTC instant and converts it through the
-  /// selected place's IANA timezone. It never reads the device timezone to
-  /// decide the selected place's local date or clock time.
   static tz.TZDateTime currentLocalDateTime(
     ResolvedLocation loc, {
     DateTime? utcNow,
   }) {
     final timeZoneId = timezoneIdForLocation(loc);
-
     if (timeZoneId == null) {
-      throw StateError(
-        'Unable to resolve an IANA timezone for ${loc.label}',
-      );
+      throw StateError('Unable to resolve an IANA timezone for ${loc.label}');
     }
-
     return TimezoneService.fromUtc(
       ianaName: timeZoneId,
       utc: (utcNow ?? DateTime.now().toUtc()).toUtc(),
     );
   }
 
-  /// Kept for compatibility with existing callers.
-  ///
-  /// New calculations should prefer effectiveOffset() because this legacy
-  /// API does not receive latitude/date and therefore cannot guarantee the
-  /// correct location-specific DST rule.
+  /// Legacy compatibility helper. New calculations must provide a location
+  /// and date to effectiveOffset(), because longitude alone cannot represent
+  /// political timezone boundaries or historical DST.
   static Duration locationOffset(double lng) {
-    final timezoneId = timezoneIdForCoordinates(
-      lat: 0,
-      lng: lng,
-    );
-
+    final timezoneId = timezoneIdForCoordinates(lat: 0, lng: lng);
     if (timezoneId != null) {
       try {
-        final utc = DateTime.now().toUtc();
-
         return TimezoneService.offsetAtUtc(
           ianaName: timezoneId,
-          utc: utc,
+          utc: DateTime.now().toUtc(),
         );
       } catch (_) {}
     }
-
-    final hours = (lng / 15).round();
-
-    return Duration(hours: hours);
+    return Duration(hours: (lng / 15).round());
   }
 
+  /// Build sunrise/sunset as selected-location wall-clock DateTimes.
+  ///
+  /// Each solar event is converted with the IANA offset applicable to that
+  /// event's actual UTC instant. We deliberately do NOT reuse today's offset
+  /// for tomorrow's sunrise or yesterday's sunset, because a DST transition
+  /// can occur between those events.
   static DayWindow buildDayWindow({
     required DateTime nowAtLocation,
     required double lat,
@@ -393,78 +287,74 @@ class LocationService {
     Duration? offsetOverride,
     String? timeZoneId,
   }) {
-    final offset = offsetOverride ??
-        effectiveOffset(
-          ResolvedLocation(
-            label: '',
-            lat: lat,
-            lng: lng,
-            timeZoneId: timeZoneId,
-          ),
-          localDateTime: nowAtLocation,
-        );
+    final location = ResolvedLocation(
+      label: '',
+      lat: lat,
+      lng: lng,
+      timeZoneId: timeZoneId,
+    );
+    final resolvedTimeZone = timezoneIdForLocation(location);
 
     final today = SunCalculator.calculate(
       date: nowAtLocation,
       lat: lat,
       lng: lng,
     );
-
     final yesterday = SunCalculator.calculate(
       date: nowAtLocation.subtract(const Duration(days: 1)),
       lat: lat,
       lng: lng,
     );
-
     final tomorrow = SunCalculator.calculate(
       date: nowAtLocation.add(const Duration(days: 1)),
       lat: lat,
       lng: lng,
     );
 
-    DateTime shift(
-      DateTime? utc,
-      DateTime fallbackUtc,
-    ) {
-      return (utc ?? fallbackUtc).add(offset);
+    DateTime localEvent(DateTime? utc, DateTime fallbackUtc) {
+      final instant = (utc ?? fallbackUtc).toUtc();
+
+      Duration eventOffset;
+      if (resolvedTimeZone != null) {
+        eventOffset = TimezoneService.offsetAtUtc(
+          ianaName: resolvedTimeZone,
+          utc: instant,
+        );
+      } else {
+        // Only use the explicitly supplied offset when no IANA timezone can
+        // be resolved. The normal app path always resolves an IANA zone.
+        eventOffset = offsetOverride ?? Duration.zero;
+      }
+
+      final local = instant.add(eventOffset);
+      return DateTime(
+        local.year,
+        local.month,
+        local.day,
+        local.hour,
+        local.minute,
+        local.second,
+        local.millisecond,
+        local.microsecond,
+      );
     }
 
     return DayWindow(
-      sunrise: shift(
+      sunrise: localEvent(
         today.sunrise,
-        DateTime.utc(
-          nowAtLocation.year,
-          nowAtLocation.month,
-          nowAtLocation.day,
-          6,
-        ),
+        DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day, 6),
       ),
-      sunset: shift(
+      sunset: localEvent(
         today.sunset,
-        DateTime.utc(
-          nowAtLocation.year,
-          nowAtLocation.month,
-          nowAtLocation.day,
-          18,
-        ),
+        DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day, 18),
       ),
-      nextSunrise: shift(
+      nextSunrise: localEvent(
         tomorrow.sunrise,
-        DateTime.utc(
-          nowAtLocation.year,
-          nowAtLocation.month,
-          nowAtLocation.day + 1,
-          6,
-        ),
+        DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day + 1, 6),
       ),
-      previousSunset: shift(
+      previousSunset: localEvent(
         yesterday.sunset,
-        DateTime.utc(
-          nowAtLocation.year,
-          nowAtLocation.month,
-          nowAtLocation.day - 1,
-          18,
-        ),
+        DateTime.utc(nowAtLocation.year, nowAtLocation.month, nowAtLocation.day - 1, 18),
       ),
     );
   }
