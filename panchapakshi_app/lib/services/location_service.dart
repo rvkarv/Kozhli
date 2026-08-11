@@ -82,8 +82,6 @@ class LocationService {
         return null;
       }
 
-      // Verify that the returned identifier exists in the IANA database
-      // bundled with the timezone package.
       TimezoneService.location(result);
 
       return result;
@@ -270,8 +268,6 @@ class LocationService {
     if (parts.length > 4 && parts[4].trim().isNotEmpty) {
       timeZoneId = parts[4].trim();
     } else {
-      // Older cached locations did not contain an IANA timezone.
-      // Determine it again from their coordinates.
       timeZoneId = timezoneIdForCoordinates(
         lat: lat,
         lng: lng,
@@ -290,35 +286,43 @@ class LocationService {
   /// Return the timezone offset for the specified geographic location.
   ///
   /// When [localDateTime] is supplied, the IANA timezone rules for that
-  /// date/time are used. This is important for Future/Past calculations.
+  /// local wall-clock date/time are used. When it is omitted, the offset
+  /// is resolved from the actual current UTC instant. This is critical:
+  /// the device's local clock must never be interpreted as the selected
+  /// place's local clock.
   ///
-  /// If no IANA timezone can be identified, the device timezone is used
-  /// only for a GPS location; otherwise UTC is used as a safe fallback.
+  /// [utcNow] is injectable for deterministic regression tests and must be
+  /// a true UTC instant when supplied.
   static Duration effectiveOffset(
     ResolvedLocation loc, {
     DateTime? localDateTime,
+    DateTime? utcNow,
   }) {
     final timeZoneId = timezoneIdForLocation(loc);
 
     if (timeZoneId != null) {
       try {
-        final local = localDateTime ??
-            DateTime.now();
+        if (localDateTime != null) {
+          final localZoneDateTime = tz.TZDateTime(
+            TimezoneService.location(timeZoneId),
+            localDateTime.year,
+            localDateTime.month,
+            localDateTime.day,
+            localDateTime.hour,
+            localDateTime.minute,
+            localDateTime.second,
+          );
 
-        final zone = TimezoneService.location(timeZoneId);
+          return Duration(
+            seconds: localZoneDateTime.timeZoneOffset.inSeconds,
+          );
+        }
 
-        final localZoneDateTime = tz.TZDateTime(
-          zone,
-          local.year,
-          local.month,
-          local.day,
-          local.hour,
-          local.minute,
-          local.second,
-        );
+        final instant = (utcNow ?? DateTime.now().toUtc()).toUtc();
 
-        return Duration(
-          seconds: localZoneDateTime.timeZoneOffset.inSeconds,
+        return TimezoneService.offsetAtUtc(
+          ianaName: timeZoneId,
+          utc: instant,
         );
       } catch (_) {
         // Continue to fallback below.
@@ -332,10 +336,34 @@ class LocationService {
     return Duration.zero;
   }
 
+  /// Return the current wall-clock date/time for the selected place.
+  ///
+  /// This always starts from a UTC instant and converts it through the
+  /// selected place's IANA timezone. It never reads the device timezone to
+  /// decide the selected place's local date or clock time.
+  static tz.TZDateTime currentLocalDateTime(
+    ResolvedLocation loc, {
+    DateTime? utcNow,
+  }) {
+    final timeZoneId = timezoneIdForLocation(loc);
+
+    if (timeZoneId == null) {
+      throw StateError(
+        'Unable to resolve an IANA timezone for ${loc.label}',
+      );
+    }
+
+    return TimezoneService.fromUtc(
+      ianaName: timeZoneId,
+      utc: (utcNow ?? DateTime.now().toUtc()).toUtc(),
+    );
+  }
+
   /// Kept for compatibility with existing callers.
   ///
-  /// New calculations should prefer effectiveOffset() because the
-  /// timezone-aware implementation requires the selected date/time.
+  /// New calculations should prefer effectiveOffset() because this legacy
+  /// API does not receive latitude/date and therefore cannot guarantee the
+  /// correct location-specific DST rule.
   static Duration locationOffset(double lng) {
     final timezoneId = timezoneIdForCoordinates(
       lat: 0,
@@ -353,7 +381,6 @@ class LocationService {
       } catch (_) {}
     }
 
-    // Legacy fallback only if a geographic timezone cannot be identified.
     final hours = (lng / 15).round();
 
     return Duration(hours: hours);
