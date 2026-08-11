@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _purple = Color(0xFFB77BFF);
   static const _cyan = Color(0xFF63D7E6);
   static const _green = Color(0xFF9BE34A);
+  static const _danger = Color(0xFFC00000);
   static const _muted = Color(0xFFB5B5B5);
 
   @override
@@ -486,8 +487,8 @@ class _PanchapakshiCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       state.jamamActivity.tamil,
-                      style: const TextStyle(
-                        color: _HomeScreenState._green,
+                      style: TextStyle(
+                        color: _activityColor(state.jamamActivity),
                         fontSize: 23,
                         fontWeight: FontWeight.bold,
                       ),
@@ -598,7 +599,7 @@ class _AntharamCard extends StatelessWidget {
           Text(
             '${bird.tamil} — ${activity.tamil}',
             style: TextStyle(
-              color: accent,
+              color: _activityColor(activity),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -613,7 +614,7 @@ class _AntharamCard extends StatelessWidget {
           const SizedBox(height: 5),
           _RelationChip(
             label: _kozhliRelationship(bird),
-            color: accent,
+            color: _relationshipColor(bird),
           ),
         ],
       ),
@@ -634,6 +635,8 @@ class _AuthorityMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPadu = title == 'படுபட்சி';
+    final roleColor = isPadu ? _HomeScreenState._danger : _HomeScreenState._muted;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
@@ -650,15 +653,16 @@ class _AuthorityMini extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: _HomeScreenState._muted,
+                  style: TextStyle(
+                    color: roleColor,
                     fontSize: 10,
+                    fontWeight: isPadu ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
                 Text(
                   bird.tamil,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isPadu ? _HomeScreenState._danger : Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -769,8 +773,8 @@ class _ThaaraiLine extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           '${t.birthNakshatra} → ${t.todayNakshatra}',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: _thaaraiColor(t.ordinalFromBirth),
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -779,7 +783,7 @@ class _ThaaraiLine extends StatelessWidget {
         Text(
           '${t.ordinalFromBirth} — ${t.category.tamil}',
           style: TextStyle(
-            color: accent,
+            color: _thaaraiColor(t.ordinalFromBirth),
             fontSize: 17,
             fontWeight: FontWeight.bold,
           ),
@@ -787,7 +791,10 @@ class _ThaaraiLine extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           t.category.effect,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: TextStyle(
+            color: _thaaraiColor(t.ordinalFromBirth),
+            fontSize: 11,
+          ),
         ),
       ],
     );
@@ -1105,21 +1112,50 @@ class _RelationChip extends StatelessWidget {
   }
 }
 
-// Relationship is evaluated from the app's fixed Kozhli (கோழி) reference
-// bird: மயில் is நட்பு, கோழி is சுயம், காகம் is நட்பு, and
-// வல்லூறு / ஆந்தை are பகை பட்சி.
+// Fixed Kozhli relationship mapping: கோழி = சுயம்,
+// மயில்/காகம் = நட்பு, வல்லூறு/ஆந்தை = பகை.
 String _kozhliRelationship(Pakshi bird) {
   switch (bird) {
     case Pakshi.kozhi:
       return 'சுயம்';
     case Pakshi.mayil:
-      return 'நட்பு';
     case Pakshi.kaagam:
       return 'நட்பு';
     case Pakshi.vallooru:
     case Pakshi.aandhai:
-      return 'பகை பட்சி';
+      return 'பகை';
   }
+}
+
+Color _relationshipColor(Pakshi bird) {
+  switch (bird) {
+    case Pakshi.vallooru:
+    case Pakshi.aandhai:
+      return _HomeScreenState._danger;
+    case Pakshi.kozhi:
+    case Pakshi.mayil:
+    case Pakshi.kaagam:
+      return _HomeScreenState._green;
+  }
+}
+
+Color _activityColor(Thozhil activity) {
+  switch (activity) {
+    case Thozhil.thuyil:
+    case Thozhil.saavu:
+      return _HomeScreenState._danger;
+    case Thozhil.oon:
+    case Thozhil.nadai:
+    case Thozhil.arasu:
+      return _HomeScreenState._green;
+  }
+}
+
+Color _thaaraiColor(int ordinal) {
+  const red = {1, 3, 5, 7, 9, 10, 12, 14, 16, 18, 19, 21, 23, 25};
+  return red.contains(ordinal)
+      ? _HomeScreenState._danger
+      : _HomeScreenState._green;
 }
 
 String _weekdayTamil(int weekday) {
