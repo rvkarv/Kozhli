@@ -29,17 +29,27 @@ class PanchapakshiApp extends StatelessWidget {
             title: 'கோழி பட்சி',
             debugShowCheckedModeBanner: false,
 
-            // Existing Tamil/English locale support.
+            // Existing locale support.
             locale: app.locale,
-
             supportedLocales: const [
               Locale('en'),
               Locale('ta'),
+              Locale('hi'),
+              Locale('te'),
+              Locale('kn'),
+              Locale('ml'),
+              Locale('mr'),
+              Locale('bn'),
+              Locale('gu'),
+              Locale('pa'),
+              Locale('as'),
+              Locale('or'),
+              Locale('ur'),
             ],
 
-            // Use Flutter's built-in localization delegates.
-            // We are intentionally NOT referencing a missing
-            // generated AppLocalizations file.
+            // Flutter's built-in localization delegates.
+            // App-specific strings remain controlled by the app's
+            // localization layer.
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
