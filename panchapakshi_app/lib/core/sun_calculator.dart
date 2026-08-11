@@ -20,18 +20,18 @@ class SunCalculator {
 
   static DateTime? _sunEvent(DateTime date, double lat, double lng,
       {required bool isSunrise}) {
-    final zenith = 90.833; // official sunrise/sunset zenith (incl. refraction)
+    const zenith = 90.833; // official sunrise/sunset zenith (incl. refraction)
     final dayOfYear = int.parse(
-      DateTime.utc(date.year, date.month, date.day)
-          .difference(DateTime.utc(date.year, 1, 1))
-          .inDays
-          .toString(),
-    ) + 1;
+          DateTime.utc(date.year, date.month, date.day)
+              .difference(DateTime.utc(date.year, 1, 1))
+              .inDays
+              .toString(),
+        ) +
+        1;
 
     final lngHour = lng / 15;
-    final t = isSunrise
-        ? dayOfYear + ((6 - lngHour) / 24)
-        : dayOfYear + ((18 - lngHour) / 24);
+    final nominalLocalHour = isSunrise ? 6.0 : 18.0;
+    final t = dayOfYear + ((nominalLocalHour - lngHour) / 24);
 
     final M = (0.9856 * t) - 3.289;
     var L = M +
@@ -67,7 +67,22 @@ class SunCalculator {
     final minutes = minutesFull.floor();
     final seconds = ((minutesFull - minutes) * 60).round();
 
-    return DateTime.utc(date.year, date.month, date.day, hours, minutes, seconds);
+    // UT is normalized into 00:00–23:59, but the UTC calendar date can be
+    // different from the requested local calendar date. This is especially
+    // important for locations west of UTC: Lafayette's Aug 11 sunset is
+    // about 00:53 UTC on Aug 12, not 00:53 UTC on Aug 11. Without this day
+    // adjustment, converting the event to local time moves the sunset to the
+    // previous evening and makes a daytime instant look like "night".
+    final utcDayShift = ((nominalLocalHour - lngHour) / 24).floor();
+
+    return DateTime.utc(
+      date.year,
+      date.month,
+      date.day + utcDayShift,
+      hours,
+      minutes,
+      seconds,
+    );
   }
 
   static double _normalize(double v, double mod) {
