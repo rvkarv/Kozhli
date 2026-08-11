@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 
-/// Computes sunrise & sunset (local time, as UTC DateTime you convert
-/// yourself) for a given date/lat/lng using the standard NOAA solar
-/// position algorithm (accurate to ~1 minute — same class of algorithm
-/// used by most astrology/panchangam apps).
+/// Computes sunrise & sunset as true UTC instants for the requested
+/// calendar date at the supplied latitude/longitude.
+///
+/// The caller is responsible for converting those UTC instants through the
+/// selected location's IANA timezone. Keeping this class UTC-only prevents
+/// the device timezone from leaking into astronomical calculations.
 class SunCalculator {
-  /// Returns (sunrise, sunset) as UTC DateTimes for the given calendar
-  /// date (interpreted at [lat]/[lng]). Returns null values inside the
-  /// record if the sun does not rise/set that day (polar regions).
+  /// Returns sunrise and sunset as UTC DateTimes for the given local
+  /// calendar date (interpreted at [lat]/[lng]). Returns null values inside
+  /// the record if the sun does not rise/set that day (polar regions).
   static ({DateTime? sunrise, DateTime? sunset}) calculate({
     required DateTime date,
     required double lat,
@@ -21,12 +23,9 @@ class SunCalculator {
   static DateTime? _sunEvent(DateTime date, double lat, double lng,
       {required bool isSunrise}) {
     const zenith = 90.833; // official sunrise/sunset zenith (incl. refraction)
-    final dayOfYear = int.parse(
-          DateTime.utc(date.year, date.month, date.day)
-              .difference(DateTime.utc(date.year, 1, 1))
-              .inDays
-              .toString(),
-        ) +
+    final dayOfYear = DateTime.utc(date.year, date.month, date.day)
+            .difference(DateTime.utc(date.year, 1, 1))
+            .inDays +
         1;
 
     final lngHour = lng / 15;
@@ -59,27 +58,30 @@ class SunCalculator {
     H = H / 15;
 
     final T = H + RA - (0.06571 * t) - 6.622;
-    var UT = T - lngHour;
-    UT = _normalize(UT, 24);
+    final rawUT = T - lngHour;
+    final utcDayShift = (rawUT / 24).floor();
+    final UT = _normalize(rawUT, 24);
 
     final hours = UT.floor();
     final minutesFull = (UT - hours) * 60;
     final minutes = minutesFull.floor();
-    final seconds = ((minutesFull - minutes) * 60).round();
+    var seconds = ((minutesFull - minutes) * 60).round();
+    var normalizedHours = hours;
 
-    // UT is normalized into 00:00–23:59, but the UTC calendar date can be
-    // different from the requested local calendar date. This is especially
-    // important for locations west of UTC: Lafayette's Aug 11 sunset is
-    // about 00:53 UTC on Aug 12, not 00:53 UTC on Aug 11. Without this day
-    // adjustment, converting the event to local time moves the sunset to the
-    // previous evening and makes a daytime instant look like "night".
-    final utcDayShift = ((nominalLocalHour - lngHour) / 24).floor();
+    if (seconds >= 60) {
+      seconds = 0;
+      normalizedHours += 1;
+    }
+
+    if (normalizedHours >= 24) {
+      normalizedHours = 0;
+    }
 
     return DateTime.utc(
       date.year,
       date.month,
       date.day + utcDayShift,
-      hours,
+      normalizedHours,
       minutes,
       seconds,
     );
