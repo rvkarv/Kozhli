@@ -28,9 +28,8 @@ class PanchapakshiApp extends StatelessWidget {
           return MaterialApp(
             title: 'கோழி பட்சி',
             debugShowCheckedModeBanner: false,
-
-            // Existing locale support.
             locale: app.locale,
+            // Indian scheduled-language locale coverage plus English.
             supportedLocales: const [
               Locale('en'),
               Locale('ta'),
@@ -45,22 +44,26 @@ class PanchapakshiApp extends StatelessWidget {
               Locale('as'),
               Locale('or'),
               Locale('ur'),
+              Locale('ks'),
+              Locale('kok'),
+              Locale('mni'),
+              Locale('sa'),
+              Locale('ne'),
+              Locale('mai'),
+              Locale('doi'),
+              Locale('brx'),
+              Locale('sat'),
+              Locale('sd'),
             ],
-
-            // Flutter's built-in localization delegates.
-            // App-specific strings remain controlled by the app's
-            // localization layer.
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-
             theme: ThemeData(
               colorSchemeSeed: const Color(0xFF6A1B9A),
               useMaterial3: true,
             ),
-
             home: const HomeScreen(),
           );
         },
