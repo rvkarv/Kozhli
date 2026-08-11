@@ -83,6 +83,75 @@ void main() {
   });
 
   group('Date-specific timezone offset', () {
+    test('Lafayette uses standard time in January', () {
+      final location = ResolvedLocation(
+        label: 'Lafayette, Louisiana, USA',
+        lat: 30.2241,
+        lng: -92.0198,
+        timeZoneId: 'America/Chicago',
+      );
+
+      final offset = LocationService.effectiveOffset(
+        location,
+        localDateTime: DateTime(2026, 1, 15, 12),
+      );
+
+      expect(offset.inHours, -6);
+    });
+
+    test('Lafayette uses daylight time on August 11, 2026', () {
+      final location = ResolvedLocation(
+        label: 'Lafayette, Louisiana, USA',
+        lat: 30.2241,
+        lng: -92.0198,
+        timeZoneId: 'America/Chicago',
+      );
+
+      final offset = LocationService.effectiveOffset(
+        location,
+        localDateTime: DateTime(2026, 8, 11, 12),
+      );
+
+      expect(offset.inHours, -5);
+    });
+
+    test('Lafayette live UTC instant resolves to the correct local offset', () {
+      final location = ResolvedLocation(
+        label: 'Lafayette, Louisiana, USA',
+        lat: 30.2241,
+        lng: -92.0198,
+        timeZoneId: 'America/Chicago',
+      );
+
+      final offset = LocationService.effectiveOffset(
+        location,
+        utcNow: DateTime.utc(2026, 8, 11, 12),
+      );
+
+      expect(offset.inHours, -5);
+    });
+
+    test('Lafayette local date/time comes from the selected timezone, not device timezone', () {
+      final location = ResolvedLocation(
+        label: 'Lafayette, Louisiana, USA',
+        lat: 30.2241,
+        lng: -92.0198,
+        timeZoneId: 'America/Chicago',
+      );
+
+      final local = LocationService.currentLocalDateTime(
+        location,
+        utcNow: DateTime.utc(2026, 8, 11, 09, 0),
+      );
+
+      expect(local.year, 2026);
+      expect(local.month, 8);
+      expect(local.day, 11);
+      expect(local.hour, 4);
+      expect(local.minute, 0);
+      expect(local.timeZoneOffset.inHours, -5);
+    });
+
     test('Chicago uses standard time in January', () {
       final location = ResolvedLocation(
         label: 'Chicago, USA',
