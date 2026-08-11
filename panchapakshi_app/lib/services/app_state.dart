@@ -25,27 +25,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Manual: set once via BirthDetailsScreen.
   String? birthNakshatra;
 
   String? birthLagnaNakshatra;
 
-  // Automatic: recalculated every tick from real Moon position.
   MoonPosition? currentMoon;
 
-  // Current Nakshatra start/end, calculated from the same Moon engine.
   MoonNakshatraWindow? currentMoonWindow;
 
-  // Local display offset for the selected location at the current calculation
-  // instant. The IANA-derived offset is used here as the dashboard display conversion.
   Duration? currentLocationOffset;
 
-  // Future/Past prediction:
-  //
-  // When set, the dashboard freezes on this date/time interpreted
-  // as the wall-clock time at the SELECTED PLACE.
-  //
-  // Null = live "now".
   DateTime? overridePickedLocal;
 
   bool get isLive => overridePickedLocal == null;
@@ -73,9 +62,7 @@ class AppState extends ChangeNotifier {
 
     try {
       location = await LocationService.getGpsLocation();
-
       _recompute();
-
       _startTicking();
     } catch (e) {
       error = e.toString();
@@ -88,11 +75,8 @@ class AppState extends ChangeNotifier {
   Future<void> useManualLocation(ResolvedLocation loc) async {
     location = loc;
     error = null;
-
     _recompute();
-
     _startTicking();
-
     notifyListeners();
   }
 
@@ -100,8 +84,8 @@ class AppState extends ChangeNotifier {
     final last = await LocationService.lastKnown();
 
     // A GPS-derived location can become stale when the user travels. Refresh
-    // it from the device GPS instead of treating the cached coordinates as
-    // the current place. A manually selected place remains persistent.
+    // it from the device GPS instead of treating cached coordinates as the
+    // current place. A manually selected place remains persistent.
     if (last != null && !last.isDeviceLocal) {
       location = last;
       _recompute();
@@ -117,8 +101,6 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return;
     } catch (_) {
-      // If GPS is unavailable, keep the previous GPS-derived location as a
-      // safe fallback rather than losing the last usable place entirely.
       if (last != null) {
         location = last;
         _recompute();
@@ -138,12 +120,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [pickedLocal] is the date/time selected by the user.
-  ///
-  /// It is interpreted as the wall-clock date/time at the currently
-  /// selected place, NOT the device timezone.
-  ///
-  /// Pass null to return to live "now" mode.
+  /// [pickedLocal] is a wall-clock date/time at the selected place.
   void setOverrideDateTime(DateTime? pickedLocal) {
     overridePickedLocal = pickedLocal;
 
@@ -154,7 +131,6 @@ class AppState extends ChangeNotifier {
     }
 
     _recompute();
-
     notifyListeners();
   }
 
@@ -164,6 +140,24 @@ class AppState extends ChangeNotifier {
     _ticker = Timer.periodic(
       const Duration(seconds: 1),
       (_) => _recompute(),
+    );
+  }
+
+  /// Convert a DateTime carrying selected-location clock fields into a true
+  /// wall-clock DateTime. Local calculation code must compare clock fields
+  /// (09:17 AM vs 06:33 AM), not UTC instants with the timezone offset baked
+  /// into them. This is especially important when the device is in India and
+  /// the selected place is in the US.
+  DateTime _wallClock(DateTime value) {
+    return DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+      value.second,
+      value.millisecond,
+      value.microsecond,
     );
   }
 
@@ -181,54 +175,62 @@ class AppState extends ChangeNotifier {
     late Duration offset;
 
     if (override != null) {
-      // Future/Past mode: override is explicitly a wall-clock value at the
-      // selected place. IANA rules determine the offset for that date/time.
       offset = LocationService.effectiveOffset(
         loc,
         localDateTime: override,
       );
 
-      nowAtLocation = DateTime.utc(
+      // The override is already a selected-location wall-clock value.
+      nowAtLocation = _wallClock(override);
+
+      // Convert that selected-location wall clock to the real UTC instant
+      // using the date-specific IANA offset (including DST).
+      nowUtc = DateTime.utc(
         override.year,
         override.month,
         override.day,
         override.hour,
         override.minute,
         override.second,
-      );
-
-      nowUtc = nowAtLocation.subtract(offset);
+        override.millisecond,
+        override.microsecond,
+      ).subtract(offset);
     } else {
-      // Live mode: start from one true UTC instant, then convert that instant
-      // through the SELECTED PLACE'S IANA timezone. Never interpret the
-      // device's local clock as the selected place's clock.
+      // Live mode always starts from the actual UTC instant. Convert that
+      // instant through the selected location's IANA timezone, then strip
+      // timezone metadata so all solar/Panchapakshi comparisons are purely
+      // selected-location wall-clock comparisons.
       nowUtc = DateTime.now().toUtc();
       final local = LocationService.currentLocalDateTime(
         loc,
         utcNow: nowUtc,
       );
 
+      nowAtLocation = _wallClock(local);
       offset = local.timeZoneOffset;
-      nowAtLocation = DateTime.utc(
-        local.year,
-        local.month,
-        local.day,
-        local.hour,
-        local.minute,
-        local.second,
-      );
     }
 
     currentLocationOffset = offset;
 
     final timeZoneId = LocationService.timezoneIdForLocation(loc);
 
-    final window = LocationService.buildDayWindow(
+    final rawWindow = LocationService.buildDayWindow(
       nowAtLocation: nowAtLocation,
       lat: loc.lat,
       lng: loc.lng,
       offsetOverride: offset,
       timeZoneId: timeZoneId,
+    );
+
+    // SunCalculator returns UTC instants and buildDayWindow applies the
+    // selected-location offset. For the Panchapakshi engine we need the
+    // resulting LOCAL clock values, not DateTime instants. Strip the UTC
+    // metadata before comparing them with nowAtLocation.
+    final window = DayWindow(
+      sunrise: _wallClock(rawWindow.sunrise),
+      sunset: _wallClock(rawWindow.sunset),
+      nextSunrise: _wallClock(rawWindow.nextSunrise),
+      previousSunset: _wallClock(rawWindow.previousSunset),
     );
 
     state = PanchapakshiEngine.compute(
@@ -241,8 +243,6 @@ class AppState extends ChangeNotifier {
       previousSunset: window.previousSunset,
     );
 
-    // Moon/Nakshatra calculation is based on the selected calculation
-    // instant, not the device's current date when Future/Past mode is active.
     final newMoon = NakshatraCalculator.computeCurrent(nowUtc);
     final starChanged = currentMoon?.nakshatraIndex1to27 !=
         newMoon.nakshatraIndex1to27;
