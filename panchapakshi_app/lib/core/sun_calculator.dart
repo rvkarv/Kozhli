@@ -1,86 +1,102 @@
 import 'dart:math' as math;
 
-/// Computes sunrise and sunset as true UTC instants for a selected
-/// location's Gregorian calendar date.
+/// Computes sunrise & sunset as true UTC instants for the requested
+/// calendar date at the supplied latitude/longitude.
 ///
-/// Uses the NOAA solar-position approximation (solar declination + equation
-/// of time) with the official 90.833 degree sunrise/sunset zenith. The result
-/// is independent of the phone timezone; callers convert the UTC event through
-/// the selected location's IANA timezone.
+/// The caller is responsible for converting those UTC instants through the
+/// selected location's IANA timezone. Keeping this class UTC-only prevents
+/// the device timezone from leaking into astronomical calculations.
 class SunCalculator {
+  /// Returns sunrise and sunset as UTC DateTimes for the given local
+  /// calendar date (interpreted at [lat]/[lng]). Returns null values inside
+  /// the record if the sun does not rise/set that day (polar regions).
   static ({DateTime? sunrise, DateTime? sunset}) calculate({
     required DateTime date,
     required double lat,
     required double lng,
   }) {
-    final sunrise = _sunEvent(date, lat, lng, true);
-    final sunset = _sunEvent(date, lat, lng, false);
+    final sunrise = _sunEvent(date, lat, lng, isSunrise: true);
+    final sunset = _sunEvent(date, lat, lng, isSunrise: false);
     return (sunrise: sunrise, sunset: sunset);
   }
 
-  static DateTime? _sunEvent(
-    DateTime date,
-    double lat,
-    double lng,
-    bool sunrise,
-  ) {
-    const zenith = 90.833;
-    final n = DateTime.utc(date.year, date.month, date.day)
+  static DateTime? _sunEvent(DateTime date, double lat, double lng,
+      {required bool isSunrise}) {
+    const zenith = 90.833; // official sunrise/sunset zenith (incl. refraction)
+    final dayOfYear = DateTime.utc(date.year, date.month, date.day)
             .difference(DateTime.utc(date.year, 1, 1))
             .inDays +
         1;
 
-    // NOAA fractional-year equations evaluated at local solar noon.
-    final gamma = 2 * math.pi / 365.0 * (n - 1);
-    final equationOfTime = 229.18 *
-        (0.000075 +
-            0.001868 * math.cos(gamma) -
-            0.032077 * math.sin(gamma) -
-            0.014615 * math.cos(2 * gamma) -
-            0.040849 * math.sin(2 * gamma));
+    final lngHour = lng / 15;
+    final nominalLocalHour = isSunrise ? 6.0 : 18.0;
+    final t = dayOfYear + ((nominalLocalHour - lngHour) / 24);
 
-    final declination =
-        0.006918 -
-        0.399912 * math.cos(gamma) +
-        0.070257 * math.sin(gamma) -
-        0.006758 * math.cos(2 * gamma) +
-        0.000907 * math.sin(2 * gamma) -
-        0.002697 * math.cos(3 * gamma) +
-        0.001480 * math.sin(3 * gamma);
+    final M = (0.9856 * t) - 3.289;
+    var L = M +
+        (1.916 * _sinDeg(M)) +
+        (0.020 * _sinDeg(2 * M)) +
+        282.634;
+    L = _normalize(L, 360);
 
-    final latitudeRad = lat * math.pi / 180.0;
-    final cosHourAngle =
-        (math.cos(zenith * math.pi / 180.0) -
-                math.sin(latitudeRad) * math.sin(declination)) /
-            (math.cos(latitudeRad) * math.cos(declination));
+    var RA = _atanDeg(0.91764 * _tanDeg(L));
+    RA = _normalize(RA, 360);
+    final Lquadrant = (L / 90).floor() * 90;
+    final RAquadrant = (RA / 90).floor() * 90;
+    RA = RA + (Lquadrant - RAquadrant);
+    RA = RA / 15;
 
-    if (cosHourAngle > 1 || cosHourAngle < -1) return null;
+    final sinDec = 0.39782 * _sinDeg(L);
+    final cosDec = _cosDeg(_asinDeg(sinDec));
 
-    final hourAngle = math.acos(cosHourAngle) * 180.0 / math.pi;
+    final cosH = (_cosDeg(zenith) - (sinDec * _sinDeg(lat))) /
+        (cosDec * _cosDeg(lat));
 
-    // Minutes after 00:00 UTC. Longitude is positive east.
-    final solarNoonUtcMinutes = 720.0 - 4.0 * lng - equationOfTime;
-    final eventMinutes = sunrise
-        ? solarNoonUtcMinutes - 4.0 * hourAngle
-        : solarNoonUtcMinutes + 4.0 * hourAngle;
+    if (cosH > 1 || cosH < -1) return null; // sun never rises/sets
 
-    final dayShift = eventMinutes.floor() ~/ 1440;
-    final normalized = ((eventMinutes % 1440) + 1440) % 1440;
-    final hours = normalized ~/ 60;
-    final minutes = normalized % 60;
-    final seconds = ((normalized - normalized.floor()) * 60).round();
+    var H = isSunrise ? 360 - _acosDeg(cosH) : _acosDeg(cosH);
+    H = H / 15;
 
-    var result = DateTime.utc(
+    final T = H + RA - (0.06571 * t) - 6.622;
+    final rawUT = T - lngHour;
+    final utcDayShift = (rawUT / 24).floor();
+    final UT = _normalize(rawUT, 24);
+
+    final hours = UT.floor();
+    final minutesFull = (UT - hours) * 60;
+    final minutes = minutesFull.floor();
+    var seconds = ((minutesFull - minutes) * 60).round();
+    var normalizedHours = hours;
+
+    if (seconds >= 60) {
+      seconds = 0;
+      normalizedHours += 1;
+    }
+
+    if (normalizedHours >= 24) {
+      normalizedHours = 0;
+    }
+
+    return DateTime.utc(
       date.year,
       date.month,
-      date.day + dayShift,
-      hours,
+      date.day + utcDayShift,
+      normalizedHours,
       minutes,
       seconds,
     );
-
-    // Carry a rounded 60th second into the next minute.
-    if (seconds >= 60) result = result.add(const Duration(minutes: 1));
-    return result;
   }
+
+  static double _normalize(double v, double mod) {
+    var r = v % mod;
+    if (r < 0) r += mod;
+    return r;
+  }
+
+  static double _sinDeg(double d) => math.sin(d * math.pi / 180);
+  static double _cosDeg(double d) => math.cos(d * math.pi / 180);
+  static double _tanDeg(double d) => math.tan(d * math.pi / 180);
+  static double _asinDeg(double v) => math.asin(v) * 180 / math.pi;
+  static double _atanDeg(double v) => math.atan(v) * 180 / math.pi;
+  static double _acosDeg(double v) => math.acos(v) * 180 / math.pi;
 }
