@@ -7,8 +7,8 @@ import 'dart:math' as math;
 /// resulting UTC instants through the selected location's IANA timezone.
 class SunCalculator {
   /// Returns sunrise and sunset as UTC DateTimes for the requested local
-  /// calendar date. Returns null for an event only in polar regions where the
-  /// sun does not rise/set.
+  /// calendar date. Returns null for an event only in polar regions where
+  /// the sun does not rise/set.
   static ({DateTime? sunrise, DateTime? sunset}) calculate({
     required DateTime date,
     required double lat,
@@ -22,10 +22,10 @@ class SunCalculator {
   /// NOAA-style solar calculation using the equation of time and solar
   /// declination. The returned DateTime is a UTC instant.
   ///
-  /// The important detail is that the UTC event is allowed to cross the UTC
-  /// calendar boundary. This is essential for western locations such as
-  /// Lafayette, Louisiana, where an evening sunset occurs on the NEXT UTC
-  /// date while it is still the same local calendar date.
+  /// The UTC event is allowed to cross the UTC calendar boundary. This is
+  /// essential for western locations such as Lafayette, Louisiana, where an
+  /// evening sunset can occur on the next UTC date while remaining on the
+  /// same local calendar date.
   static DateTime? _sunEvent(
     DateTime date,
     double lat,
@@ -72,17 +72,18 @@ class SunCalculator {
         ? solarNoonUtcMinutes - 4.0 * hourAngle
         : solarNoonUtcMinutes + 4.0 * hourAngle;
 
-    // Preserve the UTC calendar-day crossing. This is essential for western
-    // locations such as Lafayette where sunset is on the next UTC date.
-    final dayShift = eventMinutes.floor() ~/ 1440;
-    final normalized = ((eventMinutes % 1440) + 1440) % 1440;
+    // Work in whole UTC seconds so negative values and UTC date crossings
+    // are handled correctly. Dart's ~/ operator truncates toward zero, which
+    // is not floor division for negative event times.
+    final totalSeconds = (eventMinutes * 60.0).round();
+    final dayShift = (totalSeconds / 86400).floor();
+    final secondsOfDay = totalSeconds - dayShift * 86400;
 
-    final hours = normalized ~/ 60;
-    final minutes = normalized % 60;
-    final seconds =
-        ((normalized - normalized.floor()) * 60).round();
+    final hours = secondsOfDay ~/ 3600;
+    final minutes = (secondsOfDay % 3600) ~/ 60;
+    final seconds = secondsOfDay % 60;
 
-    var result = DateTime.utc(
+    return DateTime.utc(
       date.year,
       date.month,
       date.day + dayShift,
@@ -90,11 +91,5 @@ class SunCalculator {
       minutes,
       seconds,
     );
-
-    if (seconds >= 60) {
-      result = result.add(const Duration(minutes: 1));
-    }
-
-    return result;
   }
 }
