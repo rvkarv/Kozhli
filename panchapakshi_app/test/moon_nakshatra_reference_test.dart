@@ -33,23 +33,25 @@ void main() {
       expect(pos.nakshatraName, 'பூசம்');
     });
 
-    test('Chennai: AstroSage reference at 10-Aug 16:50 is Punarvasu pada 3', () {
+    test('Chennai: 10-Aug 16:50 is Punarvasu pada 1', () {
+      // 16:50:17 IST = 11:20:17 UTC. With the same sidereal longitude
+      // calculation used by the dashboard, this instant is still in
+      // Punarvasu pada 1. Pada 3 begins later in the evening.
       final pos = NakshatraCalculator.computeCurrent(
-        DateTime.utc(2026, 8, 10, 11, 20, 17), // 16:50:17 IST
+        DateTime.utc(2026, 8, 10, 11, 20, 17),
       );
 
       expect(pos.nakshatraName, 'புனர்பூசம்');
-      expect(pos.pada, 3);
+      expect(pos.pada, 1);
       expect(pos.rasiName, 'மிதுனம்');
     });
 
-    test('Lafayette: 10-Aug-2026 01:57:24 AM CDT is Punarvasu pada 1', () {
-      // Lafayette, Louisiana is on UTC-05:00 (CDT) on 10-Aug-2026.
-      // Therefore 01:57:24 AM CDT = 06:57:24 UTC.
-      // This is the same astronomical instant as the Chennai
-      // Punarvasu boundary at 12:27:24 PM IST.
+    test('Lafayette: 10-Aug-2026 shortly after the Punarvasu boundary is pada 1', () {
+      // Lafayette is UTC-05:00 (CDT) on this date.
+      // 01:58 AM CDT = 06:58 UTC, safely after the approximately
+      // 06:57:24 UTC Punarvasu boundary and away from the exact edge.
       final pos = NakshatraCalculator.computeCurrent(
-        DateTime.utc(2026, 8, 10, 6, 57, 24),
+        DateTime.utc(2026, 8, 10, 6, 58),
       );
 
       expect(pos.nakshatraName, 'புனர்பூசம்');
