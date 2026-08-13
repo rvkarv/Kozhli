@@ -6,11 +6,11 @@ import 'package:panchapakshi_app/services/timezone_service.dart';
 import 'package:panchapakshi_app/services/location_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(TimezoneService.initialize);
 
   test('Lafayette 09:17 AM is treated as local daytime', () async {
     final app = AppState();
-
     final lafayette = ResolvedLocation(
       label: 'Lafayette, Louisiana, USA',
       lat: 30.2241,
@@ -35,7 +35,6 @@ void main() {
 
   test('Lafayette 04:38 AM remains nighttime before sunrise', () async {
     final app = AppState();
-
     final lafayette = ResolvedLocation(
       label: 'Lafayette, Louisiana, USA',
       lat: 30.2241,
