@@ -304,9 +304,9 @@ class _CurrentAstroCard extends StatelessWidget {
               children: [
                 const Text('தற்போதைய நட்சத்திரம்', style: TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 2),
-                Text('${moon.nakshatraName} — பாதம் ${moon.pada}', style: const TextStyle(color: _HomeScreenState._purple, fontSize: 21, fontWeight: FontWeight.bold)),
+                Text('${moon.nakshatraName} — பாதம் ${moon.pada}', style: const TextStyle(color: _HomeScreenState._purple, fontSize: 17, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text('ராசி: ${moon.rasiName}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                Text('ராசி: ${moon.rasiName}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                 if (window != null) ...[
                   const SizedBox(height: 7),
                   Text('நட்சத்திரம் தொடக்கம்: ${boundaryFmt.format(_localBoundary(window!.startUtc))}', style: const TextStyle(color: Colors.white, fontSize: 11)),
