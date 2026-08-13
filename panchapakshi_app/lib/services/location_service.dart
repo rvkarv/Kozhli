@@ -166,6 +166,10 @@ class LocationService {
     return results;
   }
 
+  /// Persist a manually selected location so a later app launch keeps using
+  /// the selected place instead of silently switching back to the phone GPS.
+  static Future<void> rememberLocation(ResolvedLocation loc) => _cache(loc);
+
   static Future<void> _cache(ResolvedLocation loc) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, _encode(loc));
@@ -321,8 +325,6 @@ class LocationService {
           utc: instant,
         );
       } else {
-        // Only use the explicitly supplied offset when no IANA timezone can
-        // be resolved. The normal app path always resolves an IANA zone.
         eventOffset = offsetOverride ?? Duration.zero;
       }
 

@@ -75,6 +75,12 @@ class AppState extends ChangeNotifier {
   Future<void> useManualLocation(ResolvedLocation loc) async {
     location = loc;
     error = null;
+
+    // Keep the selected place across app restarts. This is especially
+    // important when the phone itself is in India but the selected test place
+    // is Lafayette, Louisiana (or another location in a different timezone).
+    await LocationService.rememberLocation(loc);
+
     _recompute();
     _startTicking();
     notifyListeners();
