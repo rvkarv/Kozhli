@@ -18,74 +18,45 @@ class TimezoneService {
 
   static bool _initialized = false;
 
-  /// Initialize the embedded IANA timezone database.
-  ///
-  /// Safe to call multiple times.
   static void initialize() {
-    if (_initialized) {
-      return;
-    }
-
+    if (_initialized) return;
     tz_data.initializeTimeZones();
     _initialized = true;
   }
 
   static void _ensureInitialized() {
-    if (!_initialized) {
-      initialize();
-    }
+    if (!_initialized) initialize();
   }
 
-  /// Return the IANA timezone location.
-  ///
-  /// Examples:
-  /// America/Chicago
-  /// America/Indiana/Indianapolis
-  /// Asia/Kolkata
   static tz.Location location(String ianaName) {
     _ensureInitialized();
     return tz.getLocation(ianaName);
   }
 
-  /// Return the UTC offset applicable to the supplied UTC instant.
+  /// Return the UTC offset applicable to a UTC instant.
   ///
-  /// The IANA database automatically applies the correct DST rule
-  /// for the supplied date.
+  /// IMPORTANT: timezone's TimeZone.offset is expressed in milliseconds.
+  /// Converting it as seconds produces values such as -5000 hours for
+  /// America/Chicago instead of the correct -5 hours.
   static Duration offsetAtUtc({
     required String ianaName,
     required DateTime utc,
   }) {
     _ensureInitialized();
-
     final zone = tz.getLocation(ianaName);
-    final instant = utc.toUtc();
-
-    final period = zone.timeZone(
-      instant.millisecondsSinceEpoch,
-    );
-
-    // timezone 0.10.1 exposes the offset in seconds.
-    return Duration(seconds: period.offset);
+    final period = zone.timeZone(utc.toUtc().millisecondsSinceEpoch);
+    return Duration(milliseconds: period.offset);
   }
 
-  /// Convert a UTC instant to the selected IANA timezone.
   static tz.TZDateTime fromUtc({
     required String ianaName,
     required DateTime utc,
   }) {
     _ensureInitialized();
-
     final zone = tz.getLocation(ianaName);
-
-    return tz.TZDateTime.from(
-      utc.toUtc(),
-      zone,
-    );
+    return tz.TZDateTime.from(utc.toUtc(), zone);
   }
 
-  /// Create a timezone-aware local date/time.
-  ///
-  /// This will be used by the Future/Past calculation system.
   static tz.TZDateTime localDateTime({
     required String ianaName,
     required int year,
@@ -96,54 +67,25 @@ class TimezoneService {
     int second = 0,
   }) {
     _ensureInitialized();
-
     final zone = tz.getLocation(ianaName);
-
-    return tz.TZDateTime(
-      zone,
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-    );
+    return tz.TZDateTime(zone, year, month, day, hour, minute, second);
   }
 
-  /// Return the timezone abbreviation applicable at the supplied
-  /// UTC instant.
-  ///
-  /// Examples:
-  /// CST
-  /// CDT
-  /// EST
-  /// EDT
   static String abbreviationAtUtc({
     required String ianaName,
     required DateTime utc,
   }) {
-    final local = fromUtc(
-      ianaName: ianaName,
-      utc: utc,
-    );
-
+    final local = fromUtc(ianaName: ianaName, utc: utc);
     return local.timeZoneName;
   }
 
-  /// Return true when the selected UTC instant is observing DST.
   static bool isDaylightSavingAtUtc({
     required String ianaName,
     required DateTime utc,
   }) {
     _ensureInitialized();
-
     final zone = tz.getLocation(ianaName);
-    final instant = utc.toUtc();
-
-    final period = zone.timeZone(
-      instant.millisecondsSinceEpoch,
-    );
-
+    final period = zone.timeZone(utc.toUtc().millisecondsSinceEpoch);
     return period.isDst;
   }
 }
