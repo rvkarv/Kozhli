@@ -41,19 +41,6 @@ class KozhliSuccessWindow {
 class KozhliSuccessRules {
   static const Pakshi kozhli = Pakshi.kozhi;
 
-  /// Pairwise relationship of each bird to KOZHLI, matching the
-  /// workbook's அந்தர பட்சி -> உறவு column.
-  ///
-  /// This is deliberately separate from Table-10's daily roles
-  /// (அதிகார / படு / சம / பகை / நட்பு பட்சி).
-  ///
-  /// KOZHLI -> சுயம்
-  /// MAYIL -> நட்பு
-  /// KAAGAM -> நட்பு
-  /// VALLOORU -> பகை
-  /// AANDHAI -> பகை
-  ///
-  /// Thus both மயில் and காகம் can correctly be நட்பு for KOZHLI.
   static String relationshipToKozhli(Pakshi bird) {
     switch (bird) {
       case Pakshi.kozhi:
@@ -67,11 +54,6 @@ class KozhliSuccessRules {
     }
   }
 
-  /// Evaluates the current KOZHLI Panchapakshi condition.
-  ///
-  /// The relationship shown in the authority summary is the relationship
-  /// of the day's authority bird to KOZHLI. It must NOT be replaced by the
-  /// authority bird's Table-10 role or by the current அந்தர பட்சி.
   static KozhliSuccessResult evaluate({
     required DayRulerInfo dayRuler,
     required Pakshi antharamBird,
@@ -117,12 +99,7 @@ class KozhliSuccessRules {
     );
   }
 
-  static int _successPercent(
-    Pakshi antharamBird,
-    Thozhil activity,
-  ) {
-    // The KOZHLI success percentage applies to KOZHLI
-    // அந்தர பட்சி தொழில்.
+  static int _successPercent(Pakshi antharamBird, Thozhil activity) {
     if (antharamBird != kozhli) {
       return 0;
     }
@@ -130,49 +107,43 @@ class KozhliSuccessRules {
     switch (activity) {
       case Thozhil.arasu:
         return 100;
-
       case Thozhil.oon:
         return 75;
-
       case Thozhil.nadai:
         return 50;
-
       case Thozhil.thuyil:
       case Thozhil.saavu:
         return 0;
     }
   }
 
-  static String _successLabel(
-    int percent,
-    Thozhil activity,
-  ) {
+  static String _successLabel(int percent, Thozhil activity) {
     switch (percent) {
       case 100:
         return 'அரசு — 100% Success';
-
       case 75:
         return 'ஊண் — 75% Success';
-
       case 50:
         return 'நடை — 50% Success';
-
       default:
         return '${activity.tamil} — 0% Success';
     }
   }
 
-  /// Builds the successful KOZHLI periods within a real sunrise/sunset
-  /// or sunset/next-sunrise period.
+  /// Builds the successful KOZHLI periods inside one actual solar period.
   ///
-  /// The period is divided into the five real Panchapakshi ஜாமங்கள்.
-  /// Each ஜாமத்தின் அந்தர timings use the location-specific actual
-  /// ஜாமம் duration together with the weighted Panchapakshi minute table.
+  /// Excel's Panchapakshi sheet keeps the standard five-minute table intact
+  /// and applies the same per-அந்தரம் correction to each of the five
+  /// segments.  For example, when a day ஜாமம் is 02:32:36.894:
   ///
-  /// IMPORTANT: the அந்தர பட்சி sequence is anchored on the selected
-  /// KOZHLI bird, exactly like PanchapakshiEngine. The previous implementation
-  /// always started from PanchapakshiRules.birdOrder[0], which shifted every
-  /// KOZHLI success window to the wrong position inside each ஜாமம்.
+  ///   standard ஜாமம் = 02:24:00
+  ///   difference     = 00:08:36.894
+  ///   Excel F7       = 00:01:43.3788
+  ///   ஊண்            = 00:48:00 + F7 = 00:49:43.3788
+  ///
+  /// This is deliberately calculated from the actual period rather than
+  /// from a fixed 24-hour clock so Rajahmundry and Lafayette both use their
+  /// own sunrise/sunset durations.
   static List<KozhliSuccessWindow> windowsForPeriod({
     required DateTime periodStart,
     required DateTime periodEnd,
@@ -186,7 +157,6 @@ class KozhliSuccessRules {
     }
 
     final totalPeriod = periodEnd.difference(periodStart);
-
     if (totalPeriod.inMicroseconds <= 0) {
       return const <KozhliSuccessWindow>[];
     }
@@ -195,8 +165,6 @@ class KozhliSuccessRules {
       microseconds: totalPeriod.inMicroseconds ~/ 5,
     );
 
-    // PanchapakshiEngine rotates the five birds so the selected bird is the
-    // first அந்தர பட்சி. Future-prediction windows must use the same sequence.
     final baseCycle = dayNight == DayNight.day
         ? PanchapakshiRules.birdOrder
         : PanchapakshiRules.birdOrder.reversed.toList();
@@ -213,40 +181,37 @@ class KozhliSuccessRules {
 
     for (var jamamIndex = 0; jamamIndex < 5; jamamIndex++) {
       final jamamStart = periodStart.add(jamamDuration * jamamIndex);
-
       final jamamEnd = jamamIndex == 4
           ? periodEnd
           : jamamStart.add(jamamDuration);
 
-      final activities = birdCycle.map((bird) {
-        return PanchapakshiRules.activityFor(
-          bird: bird,
-          jamam: jamamIndex + 1,
-          paksham: paksham,
-          dayNight: dayNight,
-          dateTimeWeekday: rulingWeekday,
+      final activities = <Thozhil>[];
+      for (final bird in birdCycle) {
+        activities.add(
+          PanchapakshiRules.activityFor(
+            bird: bird,
+            jamam: jamamIndex + 1,
+            paksham: paksham,
+            dayNight: dayNight,
+            dateTimeWeekday: rulingWeekday,
+          ),
         );
-      }).toList();
+      }
 
-      final durations = _antharamDurations(
+      final durations = _excelAntharamDurations(
         jamamDuration: jamamDuration,
         activities: activities,
         weightTable: weightTable,
       );
 
       var cursor = jamamStart;
-
       for (var i = 0; i < 5; i++) {
         final bird = birdCycle[i];
         final activity = activities[i];
-
-        final end = i == 4
-            ? jamamEnd
-            : cursor.add(durations[i]);
+        final end = i == 4 ? jamamEnd : cursor.add(durations[i]);
 
         if (bird == kozhli) {
           final percent = _successPercent(bird, activity);
-
           if (percent > 0) {
             result.add(
               KozhliSuccessWindow(
@@ -268,29 +233,34 @@ class KozhliSuccessRules {
     return result;
   }
 
-  static List<Duration> _antharamDurations({
+  /// Exact Excel-style segment calculation.
+  ///
+  /// The standard Panchapakshi table totals 144 minutes.  Excel calculates
+  /// the actual ジャமம் difference from 144 minutes, divides that difference
+  /// by five (F7/F9), and adds that correction to every segment.  The last
+  /// segment receives the integer-microsecond remainder so the five segments
+  /// terminate exactly at the real ஜாமம் end.
+  static List<Duration> _excelAntharamDurations({
     required Duration jamamDuration,
     required List<Thozhil> activities,
     required Map<String, int> weightTable,
   }) {
     const standardJamam = Duration(minutes: 144);
 
-    final extraTotal = jamamDuration - standardJamam;
+    final differenceMicros =
+        jamamDuration.inMicroseconds - standardJamam.inMicroseconds;
+    final correctionMicros = differenceMicros ~/ 5;
+    final correction = Duration(microseconds: correctionMicros);
+    final remainderMicros =
+        differenceMicros - correctionMicros * 5;
 
-    final extraPerAntharam = Duration(
-      microseconds: extraTotal.inMicroseconds ~/ 5,
-    );
-
-    final roundingRemainder =
-        extraTotal - (extraPerAntharam * 5);
-
-    return List.generate(5, (i) {
+    return List<Duration>.generate(5, (i) {
       final baseMinutes = weightTable[activities[i].tamil] ?? 0;
       final base = Duration(minutes: baseMinutes);
-      final extra = i == 4
-          ? extraPerAntharam + roundingRemainder
-          : extraPerAntharam;
-      return base + extra;
+      final finalCorrection = i == 4
+          ? Duration(microseconds: correctionMicros + remainderMicros)
+          : correction;
+      return base + finalCorrection;
     });
   }
 }
