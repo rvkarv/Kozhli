@@ -7,12 +7,26 @@ import 'package:panchapakshi_app/services/timezone_service.dart';
 void main() {
   setUpAll(TimezoneService.initialize);
 
+  DateTime wallClock(DateTime value) {
+    return DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+      value.second,
+      value.millisecond,
+      value.microsecond,
+    );
+  }
+
   DateTime localFromUtc(DateTime utc, String zone) {
-    return TimezoneService.fromUtc(ianaName: zone, utc: utc);
+    return wallClock(
+      TimezoneService.fromUtc(ianaName: zone, utc: utc),
+    );
   }
 
   test('Rajahmundry and Lafayette represent the same Moon state', () {
-    // 2026-08-12 08:41 IST == 2026-08-11 22:11 CDT.
     final utc = DateTime.utc(2026, 8, 12, 3, 11);
     final moon = NakshatraCalculator.computeCurrent(utc);
 
@@ -49,13 +63,12 @@ void main() {
     expect(window.padaEndUtc.isAfter(utc), isTrue);
     expect(window.endUtc.isAfter(utc), isTrue);
 
-    // Drik/Panchanga reference supplied for this validation case:
-    // Rajahmundry Ayilyam 1 starts ~07:59 IST and ends ~06:06 IST next day.
-    // The local conversion should therefore land within two minutes of the
-    // reference even though the astronomical implementation is independent
-    // of the display timezone.
+    // Compare timezone-aware values as selected-location wall-clock fields.
+    // Directly subtracting TZDateTime from a timezone-free DateTime applies
+    // the device timezone and can create a false 330-minute error.
     final startLocal = localFromUtc(window.startUtc, 'Asia/Kolkata');
     final endLocal = localFromUtc(window.endUtc, 'Asia/Kolkata');
+
     final expectedStart = DateTime(2026, 8, 12, 7, 59);
     final expectedEnd = DateTime(2026, 8, 13, 6, 6);
 
@@ -68,9 +81,9 @@ void main() {
       lessThanOrEqualTo(2),
     );
 
-    // The same UTC boundaries must appear 10h30 earlier in Lafayette.
     final lafStart = localFromUtc(window.startUtc, 'America/Chicago');
     final lafEnd = localFromUtc(window.endUtc, 'America/Chicago');
+
     expect(lafStart.year, 2026);
     expect(lafStart.month, 8);
     expect(lafStart.day, 11);
