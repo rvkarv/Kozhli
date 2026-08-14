@@ -73,14 +73,15 @@ class KozhliSuccessRules {
   /// Returns the KOZHLI success windows from one complete solar period.
   /// Each solar period is divided into five equal ஜாமங்கள்.
   ///
-  /// Excel adjustment magnitude:
+  /// Excel-verified KOZHLI activity positions for Friday வளர்பிறை are:
+  ///   DAY:   ஜாமம் 1 = ஊண், 2 = நடை, 3 = அரசு.
+  ///   NIGHT: ஜாமம் 2 = நடை, 4 = ஊண், 5 = அரசு.
+  /// The activity begins at the start of its corresponding ஜாமம்.
+  ///
+  /// Excel adjustment:
   ///   DAY   = (ஜாமம் - 02:24:00) / 5
   ///   NIGHT = (02:24:00 - ஜாமம்) / 5
-  ///
-  /// The workbook then applies the adjustment in opposite directions:
-  /// DAY activities are lengthened when the actual ஜாமம் is longer than
-  /// 02:24:00; NIGHT activities are shortened when the actual ஜாமம் is
-  /// shorter than 02:24:00. Therefore the value used below is signed.
+  /// The night value is a reduction from the standard activity duration.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -134,10 +135,12 @@ class KozhliSuccessRules {
       return day[jamam];
     }
 
+    // Friday வளர்பிறை night: the Excel-calculated KOZHLI windows
+    // occur in ஜாமங்கள் 2, 4 and 5.
     const night = <int, Thozhil>{
       2: Thozhil.nadai,
-      3: Thozhil.oon,
-      4: Thozhil.arasu,
+      4: Thozhil.oon,
+      5: Thozhil.arasu,
     };
     return night[jamam];
   }
@@ -148,9 +151,6 @@ class KozhliSuccessRules {
         ? jamamMicros - standardJamamMicros
         : standardJamamMicros - jamamMicros;
 
-    // The Excel night value is a positive reduction magnitude. Apply it
-    // negatively to the standard activity duration. Day uses a positive
-    // addition. This matches the workbook's F7/F9 timing outputs.
     final signedCorrection = dayNight == DayNight.day
         ? difference ~/ 5
         : -(difference ~/ 5);
