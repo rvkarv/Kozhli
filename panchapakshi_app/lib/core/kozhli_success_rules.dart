@@ -77,8 +77,10 @@ class KozhliSuccessRules {
   ///   DAY   F7 = (ஜாமம் - 02:24:00) / 5
   ///   NIGHT F9 = (02:24:00 - ஜாமம்) / 5
   ///
-  /// Therefore the correction is ADDED to the standard activity duration
-  /// during the day, but SUBTRACTED during the night.
+  /// F7/F9 is the signed Excel correction itself. It is added directly to
+  /// the standard activity duration for both day and night. For a night
+  /// jamam longer than 02:24:00, F9 is negative and therefore shortens the
+  /// activity duration, exactly as in the workbook.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -146,14 +148,13 @@ class KozhliSuccessRules {
         ? jamamMicros - standardJamamMicros
         : standardJamamMicros - jamamMicros;
 
-    // F7 is a positive correction for day; F9 is a negative correction
-    // for night. The previous implementation calculated the night magnitude
-    // correctly but accidentally added it to the activity duration.
-    final signedCorrection = dayNight == DayNight.day
-        ? difference ~/ 5
-        : -(difference ~/ 5);
+    // The Excel F7/F9 value is already signed:
+    //   DAY:   (actual jamam - 02:24:00) / 5
+    //   NIGHT: (02:24:00 - actual jamam) / 5
+    // Therefore do not negate the night value a second time.
+    final excelCorrection = difference ~/ 5;
 
     final baseMinutes = weightTable[activity.tamil] ?? 0;
-    return Duration(microseconds: baseMinutes * 60 * 1000000 + signedCorrection);
+    return Duration(microseconds: baseMinutes * 60 * 1000000 + excelCorrection);
   }
 }
