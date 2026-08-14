@@ -70,15 +70,15 @@ class KozhliSuccessRules {
     }
   }
 
-  /// Returns only the KOZHLI success windows from one complete solar period.
-  /// The start of each Antharam is determined by the five equal ஜாமங்கள்.
-  /// The individual activity duration then uses the Excel correction:
+  /// Returns the KOZHLI success windows from one complete solar period.
+  /// Each solar period is divided into five equal ஜாமங்கள்.
   ///
-  ///   DAY   F7 = (actual ஜாமம் - 02:24:00) / 5
-  ///   NIGHT F9 = (02:24:00 - actual ஜாமம்) / 5
+  /// Excel correction:
+  ///   DAY   F7 = (ஜாமம் - 02:24:00) / 5
+  ///   NIGHT F9 = (02:24:00 - ஜாமம்) / 5
   ///
-  /// The sign is deliberately different for night; this is the correction
-  /// used by the workbook and was the remaining error in Build #198.
+  /// Therefore the correction is ADDED to the standard activity duration
+  /// during the day, but SUBTRACTED during the night.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -145,8 +145,15 @@ class KozhliSuccessRules {
     final difference = dayNight == DayNight.day
         ? jamamMicros - standardJamamMicros
         : standardJamamMicros - jamamMicros;
-    final correction = difference ~/ 5;
+
+    // F7 is a positive correction for day; F9 is a negative correction
+    // for night. The previous implementation calculated the night magnitude
+    // correctly but accidentally added it to the activity duration.
+    final signedCorrection = dayNight == DayNight.day
+        ? difference ~/ 5
+        : -(difference ~/ 5);
+
     final baseMinutes = weightTable[activity.tamil] ?? 0;
-    return Duration(microseconds: baseMinutes * 60 * 1000000 + correction);
+    return Duration(microseconds: baseMinutes * 60 * 1000000 + signedCorrection);
   }
 }
