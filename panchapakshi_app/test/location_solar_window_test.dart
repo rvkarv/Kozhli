@@ -42,10 +42,10 @@ void main() {
 
     expect(afterFallbackOffset.inHours, -6);
 
-    // Most importantly, verify the sunrise itself uses the offset
-    // belonging to that actual UTC event.
+    // Verify that the sunrise itself uses the offset belonging
+    // to the actual UTC event.
     final eventOffset = TimezoneService.offsetAtUtc(
-      ianaName: location.timeZoneId,
+      ianaName: location.timeZoneId!,
       utc: window.nextSunrise.toUtc(),
     );
 
