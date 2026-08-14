@@ -9,17 +9,22 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(TimezoneService.initialize);
 
-  test('Lafayette 09:17 AM is treated as local daytime', () async {
-    final app = AppState();
-    final lafayette = ResolvedLocation(
-      label: 'Lafayette, Louisiana, USA',
-      lat: 30.2241,
-      lng: -92.0198,
-      timeZoneId: 'America/Chicago',
-    );
+  ResolvedLocation lafayette() => const ResolvedLocation(
+        label: 'Lafayette, Louisiana, USA',
+        lat: 30.2241,
+        lng: -92.0198,
+        timeZoneId: 'America/Chicago',
+      );
 
+  test('Lafayette 09:17 AM is treated as local daytime', () {
+    final app = AppState();
+
+    // Inject the test location directly. Do NOT call useManualLocation()
+    // here because that production method deliberately persists the selected
+    // location through SharedPreferences. These unit tests must not depend
+    // on a platform plugin.
+    app.location = lafayette();
     app.setOverrideDateTime(DateTime(2026, 8, 11, 9, 17));
-    await app.useManualLocation(lafayette);
 
     final state = app.state;
     expect(state, isNotNull);
@@ -33,17 +38,11 @@ void main() {
     app.dispose();
   });
 
-  test('Lafayette 04:38 AM remains nighttime before sunrise', () async {
+  test('Lafayette 04:38 AM remains nighttime before sunrise', () {
     final app = AppState();
-    final lafayette = ResolvedLocation(
-      label: 'Lafayette, Louisiana, USA',
-      lat: 30.2241,
-      lng: -92.0198,
-      timeZoneId: 'America/Chicago',
-    );
 
+    app.location = lafayette();
     app.setOverrideDateTime(DateTime(2026, 8, 11, 4, 38));
-    await app.useManualLocation(lafayette);
 
     final state = app.state;
     expect(state, isNotNull);
