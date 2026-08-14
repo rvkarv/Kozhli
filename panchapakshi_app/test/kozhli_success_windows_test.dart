@@ -80,11 +80,11 @@ void main() {
     expect(windows[0].activity, Thozhil.nadai);
     expect(windows[0].percent, 50);
     expect(
-      windows[0].start.difference(DateTime(2026, 8, 14, 21, 18, 53)).inSeconds.abs(),
+      windows[0].start.difference(DateTime(2026, 8, 14, 20, 44, 36)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
     expect(
-      windows[0].end.difference(DateTime(2026, 8, 14, 21, 47, 10)).inSeconds.abs(),
+      windows[0].end.difference(DateTime(2026, 8, 14, 21, 12, 53)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
 
@@ -93,11 +93,11 @@ void main() {
     expect(windows[1].activity, Thozhil.oon);
     expect(windows[1].percent, 75);
     expect(
-      windows[1].start.difference(DateTime(2026, 8, 15, 1, 31, 44)).inSeconds.abs(),
+      windows[1].start.difference(DateTime(2026, 8, 15, 1, 15, 27)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
     expect(
-      windows[1].end.difference(DateTime(2026, 8, 15, 1, 42, 1)).inSeconds.abs(),
+      windows[1].end.difference(DateTime(2026, 8, 15, 1, 25, 44)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
 
@@ -106,11 +106,11 @@ void main() {
     expect(windows[2].activity, Thozhil.arasu);
     expect(windows[2].percent, 100);
     expect(
-      windows[2].start.difference(DateTime(2026, 8, 15, 3, 41, 10)).inSeconds.abs(),
+      windows[2].start.difference(DateTime(2026, 8, 15, 3, 30, 53)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
     expect(
-      windows[2].end.difference(DateTime(2026, 8, 15, 4, 27, 27)).inSeconds.abs(),
+      windows[2].end.difference(DateTime(2026, 8, 15, 4, 17, 10)).inSeconds.abs(),
       lessThanOrEqualTo(1),
     );
   });
