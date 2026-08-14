@@ -168,6 +168,11 @@ class KozhliSuccessRules {
   /// The period is divided into the five real Panchapakshi ஜாமங்கள்.
   /// Each ஜாமத்தின் அந்தர timings use the location-specific actual
   /// ஜாமம் duration together with the weighted Panchapakshi minute table.
+  ///
+  /// IMPORTANT: the அந்தர பட்சி sequence is anchored on the selected
+  /// KOZHLI bird, exactly like PanchapakshiEngine. The previous implementation
+  /// always started from PanchapakshiRules.birdOrder[0], which shifted every
+  /// KOZHLI success window to the wrong position inside each ஜாமம்.
   static List<KozhliSuccessWindow> windowsForPeriod({
     required DateTime periodStart,
     required DateTime periodEnd,
@@ -190,9 +195,16 @@ class KozhliSuccessRules {
       microseconds: totalPeriod.inMicroseconds ~/ 5,
     );
 
-    final birdCycle = dayNight == DayNight.day
+    // PanchapakshiEngine rotates the five birds so the selected bird is the
+    // first அந்தர பட்சி. Future-prediction windows must use the same sequence.
+    final baseCycle = dayNight == DayNight.day
         ? PanchapakshiRules.birdOrder
         : PanchapakshiRules.birdOrder.reversed.toList();
+    final kozhliIndex = baseCycle.indexOf(kozhli);
+    final birdCycle = List<Pakshi>.generate(
+      5,
+      (i) => baseCycle[(kozhliIndex + i) % baseCycle.length],
+    );
 
     final weightTable =
         PanchapakshiRules.minutesTableFor(paksham, dayNight);
