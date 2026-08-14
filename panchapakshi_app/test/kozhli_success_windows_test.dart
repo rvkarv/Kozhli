@@ -4,7 +4,7 @@ import 'package:panchapakshi_app/core/kozhli_success_rules.dart';
 import 'package:panchapakshi_app/models/pakshi.dart';
 
 void main() {
-  test('Friday waxing day windows start with KOZHLI at each jamam', () {
+  test('Friday waxing day windows match the Excel Panchapakshi timings', () {
     final sunrise = DateTime(2026, 8, 14, 5, 46, 5, 443000);
     final sunset = DateTime(2026, 8, 14, 18, 29, 9, 913000);
 
@@ -19,6 +19,7 @@ void main() {
 
     expect(windows.length, greaterThanOrEqualTo(3));
 
+    // Jamam 1: KOZHLI / ஊண் = 75%.
     expect(windows[0].bird, Pakshi.kozhi);
     expect(windows[0].activity, Thozhil.oon);
     expect(windows[0].percent, 75);
@@ -32,9 +33,10 @@ void main() {
       reason: 'Actual first KOZHLI window end: ${windows[0].end}',
     );
 
+    // Jamam 2: KOZHLI / நடை = 50%.
     expect(windows[1].bird, Pakshi.kozhi);
-    expect(windows[1].activity, Thozhil.oon);
-    expect(windows[1].percent, 75);
+    expect(windows[1].activity, Thozhil.nadai);
+    expect(windows[1].percent, 50);
     expect(
       windows[1].start.difference(DateTime(2026, 8, 14, 8, 18, 42)).inSeconds.abs(),
       lessThanOrEqualTo(1),
@@ -44,6 +46,7 @@ void main() {
       lessThanOrEqualTo(1),
     );
 
+    // Jamam 3: KOZHLI / அரசு = 100%.
     expect(windows[2].bird, Pakshi.kozhi);
     expect(windows[2].activity, Thozhil.arasu);
     expect(windows[2].percent, 100);
@@ -57,7 +60,7 @@ void main() {
     );
   });
 
-  test('night windows remain inside the selected sunset-to-next-sunrise period', () {
+  test('Friday waxing night windows match the Excel sunset-to-next-sunrise timings', () {
     final sunset = DateTime(2026, 8, 14, 18, 29, 9, 913000);
     final nextSunrise = DateTime(2026, 8, 15, 5, 46, 18, 548000);
 
@@ -70,12 +73,45 @@ void main() {
       paduDay: false,
     );
 
-    for (final window in windows) {
-      expect(window.start.isBefore(window.end), isTrue);
-      expect(window.start.isBefore(nextSunrise), isTrue);
-      expect(window.end.isAfter(sunset), isTrue);
-      expect(window.bird, Pakshi.kozhi);
-      expect(window.percent, anyOf(50, 75, 100));
-    }
+    expect(windows.length, greaterThanOrEqualTo(3));
+
+    // Jamam 2: KOZHLI / நடை = 50%.
+    expect(windows[0].bird, Pakshi.kozhi);
+    expect(windows[0].activity, Thozhil.nadai);
+    expect(windows[0].percent, 50);
+    expect(
+      windows[0].start.difference(DateTime(2026, 8, 14, 21, 18, 53)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
+    expect(
+      windows[0].end.difference(DateTime(2026, 8, 14, 21, 47, 10)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
+
+    // Jamam 4: KOZHLI / ஊண் = 75%.
+    expect(windows[1].bird, Pakshi.kozhi);
+    expect(windows[1].activity, Thozhil.oon);
+    expect(windows[1].percent, 75);
+    expect(
+      windows[1].start.difference(DateTime(2026, 8, 15, 1, 31, 44)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
+    expect(
+      windows[1].end.difference(DateTime(2026, 8, 15, 1, 42, 1)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
+
+    // Jamam 5: KOZHLI / அரசு = 100%.
+    expect(windows[2].bird, Pakshi.kozhi);
+    expect(windows[2].activity, Thozhil.arasu);
+    expect(windows[2].percent, 100);
+    expect(
+      windows[2].start.difference(DateTime(2026, 8, 15, 3, 41, 10)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
+    expect(
+      windows[2].end.difference(DateTime(2026, 8, 15, 4, 27, 27)).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
   });
 }
