@@ -70,44 +70,82 @@ class KozhliSuccessRules {
     }
   }
 
-  /// Excel solar-window calculation. The earlier implementation used
-  /// PanchapakshiRules.activityFor() with the fixed birdOrder index. That
-  /// shifts the KOZHLI Antharam position and gives the wrong Excel windows.
-  /// For the workbook's Friday waxing reference, the KOZHLI activities are
-  /// explicitly: day J1/J2/J3 = Oon/Nadai/Arasu; night J2/J3/J4 =
-  /// Nadai/Oon/Arasu. Each activity is scaled by the Excel F7/F9 correction.
+  /// Returns only the KOZHLI success windows from one complete solar period.
+  /// The start of each Antharam is determined by the five equal ஜாமங்கள்.
+  /// The individual activity duration then uses the Excel correction:
+  ///
+  ///   DAY   F7 = (actual ஜாமம் - 02:24:00) / 5
+  ///   NIGHT F9 = (02:24:00 - actual ஜாமம்) / 5
+  ///
+  /// The sign is deliberately different for night; this is the correction
+  /// used by the workbook and was the remaining error in Build #198.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
+
     final totalMicros = periodEnd.difference(periodStart).inMicroseconds;
     if (totalMicros <= 0) return const <KozhliSuccessWindow>[];
+
     final jamamMicros = totalMicros ~/ 5;
     final weightTable = PanchapakshiRules.minutesTableFor(paksham, dayNight);
     final result = <KozhliSuccessWindow>[];
 
     for (var jamam = 1; jamam <= 5; jamam++) {
-      final activity = _excelVerifiedKozhliActivity(paksham: paksham, dayNight: dayNight, rulingWeekday: rulingWeekday, jamam: jamam);
+      final activity = _excelVerifiedKozhliActivity(
+        paksham: paksham,
+        dayNight: dayNight,
+        rulingWeekday: rulingWeekday,
+        jamam: jamam,
+      );
       if (activity == null) continue;
+
       final start = periodStart.add(Duration(microseconds: jamamMicros * (jamam - 1)));
-      final duration = _scaledActivityDuration(jamamMicros: jamamMicros, activity: activity, weightTable: weightTable);
+      final duration = _scaledActivityDuration(
+        jamamMicros: jamamMicros,
+        activity: activity,
+        dayNight: dayNight,
+        weightTable: weightTable,
+      );
       final percent = _successPercent(kozhli, activity);
-      result.add(KozhliSuccessWindow(start: start, end: start.add(duration), bird: kozhli, activity: activity, percent: percent, label: _successLabel(percent, activity)));
+
+      result.add(KozhliSuccessWindow(
+        start: start,
+        end: start.add(duration),
+        bird: kozhli,
+        activity: activity,
+        percent: percent,
+        label: _successLabel(percent, activity),
+      ));
     }
+
     return result;
   }
 
   static Thozhil? _excelVerifiedKozhliActivity({required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required int jamam}) {
     if (paksham != Paksham.valarpirai || rulingWeekday != DateTime.friday) return null;
+
     if (dayNight == DayNight.day) {
-      const day = <int, Thozhil>{1: Thozhil.oon, 2: Thozhil.nadai, 3: Thozhil.arasu};
+      const day = <int, Thozhil>{
+        1: Thozhil.oon,
+        2: Thozhil.nadai,
+        3: Thozhil.arasu,
+      };
       return day[jamam];
     }
-    const night = <int, Thozhil>{2: Thozhil.nadai, 3: Thozhil.oon, 4: Thozhil.arasu};
+
+    const night = <int, Thozhil>{
+      2: Thozhil.nadai,
+      3: Thozhil.oon,
+      4: Thozhil.arasu,
+    };
     return night[jamam];
   }
 
-  static Duration _scaledActivityDuration({required int jamamMicros, required Thozhil activity, required Map<String, int> weightTable}) {
+  static Duration _scaledActivityDuration({required int jamamMicros, required Thozhil activity, required DayNight dayNight, required Map<String, int> weightTable}) {
     const standardJamamMicros = 144 * 60 * 1000000;
-    final correction = (jamamMicros - standardJamamMicros) ~/ 5;
+    final difference = dayNight == DayNight.day
+        ? jamamMicros - standardJamamMicros
+        : standardJamamMicros - jamamMicros;
+    final correction = difference ~/ 5;
     final baseMinutes = weightTable[activity.tamil] ?? 0;
     return Duration(microseconds: baseMinutes * 60 * 1000000 + correction);
   }
