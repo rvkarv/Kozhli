@@ -73,14 +73,14 @@ class KozhliSuccessRules {
   /// Returns the KOZHLI success windows from one complete solar period.
   /// Each solar period is divided into five equal ஜாமங்கள்.
   ///
-  /// Excel correction:
-  ///   DAY   F7 = (ஜாமம் - 02:24:00) / 5
-  ///   NIGHT F9 = (02:24:00 - ஜாமம்) / 5
+  /// Excel adjustment magnitude:
+  ///   DAY   = (ஜாமம் - 02:24:00) / 5
+  ///   NIGHT = (02:24:00 - ஜாமம்) / 5
   ///
-  /// F7/F9 is the signed Excel correction itself. It is added directly to
-  /// the standard activity duration for both day and night. For a night
-  /// jamam longer than 02:24:00, F9 is negative and therefore shortens the
-  /// activity duration, exactly as in the workbook.
+  /// The workbook then applies the adjustment in opposite directions:
+  /// DAY activities are lengthened when the actual ஜாமம் is longer than
+  /// 02:24:00; NIGHT activities are shortened when the actual ஜாமம் is
+  /// shorter than 02:24:00. Therefore the value used below is signed.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -148,13 +148,14 @@ class KozhliSuccessRules {
         ? jamamMicros - standardJamamMicros
         : standardJamamMicros - jamamMicros;
 
-    // The Excel F7/F9 value is already signed:
-    //   DAY:   (actual jamam - 02:24:00) / 5
-    //   NIGHT: (02:24:00 - actual jamam) / 5
-    // Therefore do not negate the night value a second time.
-    final excelCorrection = difference ~/ 5;
+    // The Excel night value is a positive reduction magnitude. Apply it
+    // negatively to the standard activity duration. Day uses a positive
+    // addition. This matches the workbook's F7/F9 timing outputs.
+    final signedCorrection = dayNight == DayNight.day
+        ? difference ~/ 5
+        : -(difference ~/ 5);
 
     final baseMinutes = weightTable[activity.tamil] ?? 0;
-    return Duration(microseconds: baseMinutes * 60 * 1000000 + excelCorrection);
+    return Duration(microseconds: baseMinutes * 60 * 1000000 + signedCorrection);
   }
 }
