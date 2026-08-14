@@ -22,10 +22,14 @@ void main() {
     expect(windows[0].bird, Pakshi.kozhi);
     expect(windows[0].activity, Thozhil.oon);
     expect(windows[0].percent, 75);
-    expect(windows[0].start.difference(sunrise).inSeconds.abs(), lessThanOrEqualTo(1));
+    expect(
+      windows[0].start.difference(sunrise).inSeconds.abs(),
+      lessThanOrEqualTo(1),
+    );
     expect(
       windows[0].end.difference(DateTime(2026, 8, 14, 6, 35, 49)).inSeconds.abs(),
       lessThanOrEqualTo(1),
+      reason: 'Actual first KOZHLI window end: ${windows[0].end}',
     );
 
     expect(windows[1].bird, Pakshi.kozhi);
