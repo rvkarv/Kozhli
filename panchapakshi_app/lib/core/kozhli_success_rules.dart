@@ -70,18 +70,12 @@ class KozhliSuccessRules {
     }
   }
 
-  /// Returns the KOZHLI success windows from one complete solar period.
-  /// Each solar period is divided into five equal ஜாமங்கள்.
+  /// Returns KOZHLI success windows from one complete solar period.
+  /// The Panchapakshi rule-book activity grid is the source of truth for
+  /// bird/activity positions. Excel supplies the solar-period timings.
   ///
-  /// Excel-verified KOZHLI activity positions for Friday வளர்பிறை are:
-  ///   DAY:   ஜாமம் 1 = ஊண், 2 = நடை, 3 = அரசு.
-  ///   NIGHT: ஜாமம் 2 = நடை, 4 = ஊண், 5 = அரசு.
-  /// The activity begins at the start of its corresponding ஜாமம்.
-  ///
-  /// Excel adjustment:
-  ///   DAY   = (ஜாமம் - 02:24:00) / 5
-  ///   NIGHT = (02:24:00 - ஜாமம்) / 5
-  /// The night value is a reduction from the standard activity duration.
+  /// Day correction:   (actual ஜாமம் - 02:24:00) / 5
+  /// Night correction: (02:24:00 - actual ஜாமம்) / 5, applied as a reduction.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -93,13 +87,15 @@ class KozhliSuccessRules {
     final result = <KozhliSuccessWindow>[];
 
     for (var jamam = 1; jamam <= 5; jamam++) {
-      final activity = _excelVerifiedKozhliActivity(
+      final activity = PanchapakshiRules.activityFor(
+        bird: kozhli,
+        jamam: jamam,
         paksham: paksham,
         dayNight: dayNight,
-        rulingWeekday: rulingWeekday,
-        jamam: jamam,
+        dateTimeWeekday: rulingWeekday,
       );
-      if (activity == null) continue;
+      final percent = _successPercent(kozhli, activity);
+      if (percent == 0) continue;
 
       final start = periodStart.add(Duration(microseconds: jamamMicros * (jamam - 1)));
       final duration = _scaledActivityDuration(
@@ -108,7 +104,6 @@ class KozhliSuccessRules {
         dayNight: dayNight,
         weightTable: weightTable,
       );
-      final percent = _successPercent(kozhli, activity);
 
       result.add(KozhliSuccessWindow(
         start: start,
@@ -121,28 +116,6 @@ class KozhliSuccessRules {
     }
 
     return result;
-  }
-
-  static Thozhil? _excelVerifiedKozhliActivity({required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required int jamam}) {
-    if (paksham != Paksham.valarpirai || rulingWeekday != DateTime.friday) return null;
-
-    if (dayNight == DayNight.day) {
-      const day = <int, Thozhil>{
-        1: Thozhil.oon,
-        2: Thozhil.nadai,
-        3: Thozhil.arasu,
-      };
-      return day[jamam];
-    }
-
-    // Friday வளர்பிறை night: the Excel-calculated KOZHLI windows
-    // occur in ஜாமங்கள் 2, 4 and 5.
-    const night = <int, Thozhil>{
-      2: Thozhil.nadai,
-      4: Thozhil.oon,
-      5: Thozhil.arasu,
-    };
-    return night[jamam];
   }
 
   static Duration _scaledActivityDuration({required int jamamMicros, required Thozhil activity, required DayNight dayNight, required Map<String, int> weightTable}) {
