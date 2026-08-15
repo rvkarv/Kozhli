@@ -25,29 +25,16 @@ jobs:
       - name: Verify regression sources
         run: |
           echo "HEAD=$(git -C .. rev-parse HEAD)"
-          echo "MOON TEST SHA256=$(sha256sum test/master_workbook_moon_window_test.dart)"
-          echo "MOON TEST FROM HEAD:"
-          git -C .. show HEAD:panchapakshi_app/test/master_workbook_moon_window_test.dart | sed -n '1,120p'
-          echo "MOON TEST FROM WORKTREE:"
-          sed -n '1,120p' test/master_workbook_moon_window_test.dart
-          echo "SEARCH FOR STALE 22:25:40 EXPECTATION:"
-          if git -C .. grep -n "22:25:40" HEAD -- 'panchapakshi_app/test' 'panchapakshi_app/lib'; then
-            echo "ERROR: stale 22:25:40 reference exists in repository source"
-            exit 1
-          else
-            echo "No stale 22:25:40 reference exists in repository source."
-          fi
-          git status --short
+          test -f test/master_workbook_moon_regression_test.dart
+          echo "MASTER WORKBOOK MOON TEST SHA256=$(sha256sum test/master_workbook_moon_regression_test.dart)"
+          git -C .. grep -n "22:25:40" HEAD -- 'panchapakshi_app/test' 'panchapakshi_app/lib' && exit 1 || true
+          echo "No stale 22:25:40 reference exists in repository source."
 
       - name: Add KOZHLI launcher icon and app label
         run: |
           mkdir -p android/app/src/main/res/drawable
           cat > android/app/src/main/res/drawable/ic_kozhli.xml <<'EOF'
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="108"
-              android:viewportHeight="108">
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
               <path android:fillColor="#171717" android:pathData="M54,4A50,50 0,1 0,54 104A50,50 0,1 0,54 4"/>
               <path android:fillColor="#E8A83A" android:pathData="M54,9A45,45 0,1 0,54 99A45,45 0,1 0,54 9M54,14A40,40 0,1 1,54 94A40,40 0,1 1,54 14"/>
               <path android:fillColor="#E09935" android:pathData="M49,51C35,43 26,50 25,62C24,76 38,84 53,80C65,77 72,67 70,55C68,44 58,38 49,39C43,30 48,20 57,20C66,20 71,28 68,37C75,37 82,41 87,47L96,52L87,57C82,58 77,57 72,54C74,66 68,78 56,84C50,87 43,87 38,84L34,94L29,94L33,82C23,76 20,65 24,55C28,45 38,41 49,51"/>
@@ -67,7 +54,7 @@ jobs:
       - name: Add required permissions to AndroidManifest.xml
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>#" $MANIFEST
+          sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>#" "$MANIFEST"
 
       - name: Clean generated Flutter state
         run: flutter clean
@@ -76,7 +63,7 @@ jobs:
         run: flutter pub get
 
       - name: Run Master Workbook Moon regression test in isolation
-        run: flutter test test/master_workbook_moon_window_test.dart --reporter expanded
+        run: flutter test test/master_workbook_moon_regression_test.dart --reporter expanded
 
       - name: Isolated KOZHLI calculation check
         run: |
