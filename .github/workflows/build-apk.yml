@@ -30,11 +30,11 @@ jobs:
           echo "MASTER WORKBOOK MOON V2 TEST SHA256=$(sha256sum test/master_workbook_moon_regression_v2_test.dart)"
           echo "MASTER WORKBOOK MOON V2 TEST CONTENT:"
           sed -n '1,120p' test/master_workbook_moon_regression_v2_test.dart
-          if grep -R -n "22:25:40" test lib; then
-            echo "ERROR: stale 22:25:40 reference remains in the checked-out application source."
+          if grep -R -n "22:25:40" . --exclude-dir=.git; then
+            echo "ERROR: stale 22:25:40 reference remains anywhere in the checked-out project."
             exit 1
           fi
-          echo "No stale 22:25:40 reference exists in the checked-out application source."
+          echo "No stale 22:25:40 reference exists anywhere in the checked-out project."
 
       - name: Add KOZHLI launcher icon and app label
         run: |
@@ -63,13 +63,33 @@ jobs:
           sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>#" "$MANIFEST"
 
       - name: Clean generated Flutter state
-        run: flutter clean
+        run: |
+          flutter clean
+          rm -rf build .dart_tool
+          echo "After clean, stale test reference search:"
+          if grep -R -n "22:25:40" . --exclude-dir=.git; then
+            echo "ERROR: stale 22:25:40 reference exists after clean."
+            exit 1
+          fi
 
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Verify regression source immediately before compilation
+        run: |
+          echo "HEAD=$(git -C .. rev-parse HEAD)"
+          echo "TEST SHA256=$(sha256sum test/master_workbook_moon_regression_v2_test.dart)"
+          sed -n '1,80p' test/master_workbook_moon_regression_v2_test.dart
+          test "$(grep -c '22:13:18.742000' test/master_workbook_moon_regression_v2_test.dart)" -eq 1
+          if grep -R -n "22:25:40" . --exclude-dir=.git; then
+            echo "ERROR: stale 22:25:40 reference exists immediately before test compilation."
+            exit 1
+          fi
+
       - name: Run fresh Master Workbook Moon regression test in isolation
-        run: flutter test test/master_workbook_moon_regression_v2_test.dart --reporter expanded
+        run: |
+          rm -rf build/test_cache
+          flutter test --no-pub test/master_workbook_moon_regression_v2_test.dart --reporter expanded
 
       - name: Isolated KOZHLI calculation check
         run: |
