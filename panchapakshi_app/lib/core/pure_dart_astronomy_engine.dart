@@ -11,10 +11,20 @@ class PureDartAstronomyEngine {
   static double julianDate(DateTime utc) => utc.millisecondsSinceEpoch / _day + 2440587.5;
   static DateTime fromJulianDate(double jd) => DateTime.fromMillisecondsSinceEpoch(((jd - 2440587.5) * _day).round(), isUtc: true);
 
+  // This is the established Kozhli/Master-Workbook linear Lahiri model.
+  // Keep it identical to NakshatraCalculator; changing this independently
+  // moves a Nakshatra boundary by tens of seconds.
   static double lahiriAyanamsa(double jd) {
-    final t = (jd - 2451545.0) / 36525.0;
-    return (23.85675 + 1.396042 * t + 0.000308 * t * t) * _deg;
+    final utc = fromJulianDate(jd);
+    final year = utc.year;
+    final startOfYear = DateTime.utc(year, 1, 1);
+    final elapsedSeconds = utc.difference(startOfYear).inSeconds.toDouble();
+    final fractionalYear = elapsedSeconds / (365.25 * 24.0 * 60.0 * 60.0);
+    const arcSecondsPerYear = 50.2388475;
+    final totalYears = (year + fractionalYear) - 291.0;
+    return totalYears * arcSecondsPerYear / 3600.0 * _deg;
   }
+
   static double siderealLongitude(double tropicalLongitude, double jd) => norm(tropicalLongitude - lahiriAyanamsa(jd));
 
   static double sunLongitude(double jd) {
@@ -77,8 +87,6 @@ class PureDartAstronomyEngine {
     return (lo+hi)/2;
   }
 
-  /// Find the astronomical Nakshatra boundary nearest a supplied UTC instant.
-  /// The index is the Nakshatra immediately after the boundary (0-based).
   static DateTime boundaryNear(DateTime expectedUtc, int boundaryIndex, {Duration search = const Duration(hours: 6)}) {
     final center=julianDate(expectedUtc);
     final step=10.0/1440.0;
