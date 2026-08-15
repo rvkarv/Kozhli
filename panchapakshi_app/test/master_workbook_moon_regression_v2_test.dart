@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
 
+// Authoritative Master Workbook V2 regression source.
+// Do not replace these timestamps with the older 22:25:40 value.
 void main() {
   test('Master Workbook V2: Rajahmundry 15-Aug-2026 Uttara Phalguni Pada 2', () {
     final window = MoonNakshatraWindow.forUtc(
