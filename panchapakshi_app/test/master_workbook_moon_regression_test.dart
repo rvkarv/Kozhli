@@ -15,9 +15,10 @@ void main() {
 }
 
 void _near(DateTime actual, DateTime expected) {
+  final difference = actual.difference(expected).abs();
   expect(
-    (actual.difference(expected)).abs(),
+    difference,
     lessThanOrEqualTo(const Duration(seconds: 2)),
-    reason: 'Master Workbook expected $expected ±2 seconds; got $actual',
+    reason: 'Master Workbook expected $expected ±2 seconds; got $actual (difference $difference)',
   );
 }
