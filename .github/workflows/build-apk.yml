@@ -22,13 +22,20 @@ jobs:
       - name: Generate native Android project
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
-      - name: Verify regression sources
+      - name: Restore and verify Master Workbook regression source
         run: |
-          echo "HEAD=$(git -C .. rev-parse HEAD)"
+          # flutter create must never be allowed to alter the committed regression test.
+          git checkout HEAD -- test/master_workbook_moon_regression_test.dart
           test -f test/master_workbook_moon_regression_test.dart
+          echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "MASTER WORKBOOK MOON TEST SHA256=$(sha256sum test/master_workbook_moon_regression_test.dart)"
-          git -C .. grep -n "22:25:40" HEAD -- 'panchapakshi_app/test' 'panchapakshi_app/lib' && exit 1 || true
-          echo "No stale 22:25:40 reference exists in repository source."
+          echo "MASTER WORKBOOK MOON TEST CONTENT:"
+          sed -n '1,120p' test/master_workbook_moon_regression_test.dart
+          if grep -R -n "22:25:40" test lib; then
+            echo "ERROR: stale 22:25:40 reference remains in the checked-out application source."
+            exit 1
+          fi
+          echo "No stale 22:25:40 reference exists in the checked-out application source."
 
       - name: Add KOZHLI launcher icon and app label
         run: |
