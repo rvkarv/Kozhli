@@ -80,11 +80,11 @@ jobs:
           echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "TEST SHA256=$(sha256sum test/master_workbook_moon_regression_v2_test.dart)"
           sed -n '1,80p' test/master_workbook_moon_regression_v2_test.dart
-          if ! grep -Fq -- '22:13:18.742000' test/master_workbook_moon_regression_v2_test.dart; then
+          if ! grep -Fq -- '22:13:18.742' test/master_workbook_moon_regression_v2_test.dart; then
             echo "ERROR: expected Master Workbook boundary is missing from the test source."
             exit 1
           fi
-          if [ "$(grep -Fo '22:13:18.742000' test/master_workbook_moon_regression_v2_test.dart | wc -l)" -ne 1 ]; then
+          if [ "$(grep -Fo '22:13:18.742' test/master_workbook_moon_regression_v2_test.dart | wc -l)" -ne 1 ]; then
             echo "ERROR: expected Master Workbook boundary count is not exactly 1."
             exit 1
           fi
