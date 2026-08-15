@@ -22,16 +22,21 @@ jobs:
       - name: Generate native Android project
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
-      - name: Verify regression sources after Flutter project generation
+      - name: Verify regression sources
         run: |
-          echo "HEAD=$(git rev-parse HEAD)"
+          echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "MOON TEST SHA256=$(sha256sum test/master_workbook_moon_window_test.dart)"
-          echo "KOZHLI TEST SHA256=$(sha256sum test/kozhli_success_windows_test.dart)"
           echo "MOON TEST FROM HEAD:"
-          git show HEAD:./panchapakshi_app/test/master_workbook_moon_window_test.dart | sed -n '1,80p'
+          git -C .. show HEAD:panchapakshi_app/test/master_workbook_moon_window_test.dart | sed -n '1,120p'
           echo "MOON TEST FROM WORKTREE:"
-          sed -n '1,80p' test/master_workbook_moon_window_test.dart
-          echo "KOZHLI TEST SHA256=$(sha256sum test/kozhli_success_windows_test.dart)"
+          sed -n '1,120p' test/master_workbook_moon_window_test.dart
+          echo "SEARCH FOR STALE 22:25:40 EXPECTATION:"
+          if git -C .. grep -n "22:25:40" HEAD -- 'panchapakshi_app/test' 'panchapakshi_app/lib'; then
+            echo "ERROR: stale 22:25:40 reference exists in repository source"
+            exit 1
+          else
+            echo "No stale 22:25:40 reference exists in repository source."
+          fi
           git status --short
 
       - name: Add KOZHLI launcher icon and app label
@@ -70,6 +75,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Run Master Workbook Moon regression test in isolation
+        run: flutter test test/master_workbook_moon_window_test.dart --reporter expanded
+
       - name: Isolated KOZHLI calculation check
         run: |
           mkdir -p tool
@@ -79,22 +87,8 @@ jobs:
           void main() {
             final sunrise = DateTime(2026, 8, 14, 5, 46, 5, 443000);
             final sunset = DateTime(2026, 8, 14, 18, 29, 9, 913000);
-            final day = KozhliSuccessRules.windowsForPeriod(
-              periodStart: sunrise,
-              periodEnd: sunset,
-              paksham: Paksham.valarpirai,
-              dayNight: DayNight.day,
-              rulingWeekday: DateTime.friday,
-              paduDay: false,
-            );
-            final night = KozhliSuccessRules.windowsForPeriod(
-              periodStart: sunset,
-              periodEnd: DateTime(2026, 8, 15, 5, 46, 18, 548000),
-              paksham: Paksham.valarpirai,
-              dayNight: DayNight.night,
-              rulingWeekday: DateTime.friday,
-              paduDay: false,
-            );
+            final day = KozhliSuccessRules.windowsForPeriod(periodStart: sunrise, periodEnd: sunset, paksham: Paksham.valarpirai, dayNight: DayNight.day, rulingWeekday: DateTime.friday, paduDay: false);
+            final night = KozhliSuccessRules.windowsForPeriod(periodStart: sunset, periodEnd: DateTime(2026, 8, 15, 5, 46, 18, 548000), paksham: Paksham.valarpirai, dayNight: DayNight.night, rulingWeekday: DateTime.friday, paduDay: false);
             for (final w in day) print('DAY ${w.activity.tamil} ${w.start.toIso8601String()} -> ${w.end.toIso8601String()}');
             for (final w in night) print('NIGHT ${w.activity.tamil} ${w.start.toIso8601String()} -> ${w.end.toIso8601String()}');
           }
