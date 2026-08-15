@@ -27,8 +27,7 @@ jobs:
           echo "HEAD=$(git rev-parse HEAD)"
           echo "KOZHLI TEST SHA256=$(sha256sum test/kozhli_success_windows_test.dart)"
           echo "KOZHLI RULE SHA256=$(sha256sum lib/core/kozhli_success_rules.dart)"
-          echo "Expected timing markers present in test:"
-          grep -n "06:35:48\|06:49:29\|20:44:35\|20:55:15" test/kozhli_success_windows_test.dart || true
+          sed -n '25,85p' test/kozhli_success_windows_test.dart
 
       - name: Add KOZHLI launcher icon and app label
         run: |
@@ -60,8 +59,43 @@ jobs:
           MANIFEST=android/app/src/main/AndroidManifest.xml
           sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>#" $MANIFEST
 
+      - name: Clean generated Flutter state
+        run: flutter clean
+
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Isolated KOZHLI calculation check
+        run: |
+          mkdir -p tool
+          cat > tool/ci_kozhli_debug.dart <<'EOF'
+          import 'package:panchapakshi_app/core/kozhli_success_rules.dart';
+          import 'package:panchapakshi_app/models/pakshi.dart';
+          void main() {
+            final sunrise = DateTime(2026, 8, 14, 5, 46, 5, 443000);
+            final sunset = DateTime(2026, 8, 14, 18, 29, 9, 913000);
+            final day = KozhliSuccessRules.windowsForPeriod(
+              periodStart: sunrise,
+              periodEnd: sunset,
+              paksham: Paksham.valarpirai,
+              dayNight: DayNight.day,
+              rulingWeekday: DateTime.friday,
+              paduDay: false,
+            );
+            final night = KozhliSuccessRules.windowsForPeriod(
+              periodStart: sunset,
+              periodEnd: DateTime(2026, 8, 15, 5, 46, 18, 548000),
+              paksham: Paksham.valarpirai,
+              dayNight: DayNight.night,
+              rulingWeekday: DateTime.friday,
+              paduDay: false,
+            );
+            for (final w in day) print('DAY ${w.activity.tamil} ${w.start.toIso8601String()} -> ${w.end.toIso8601String()}');
+            for (final w in night) print('NIGHT ${w.activity.tamil} ${w.start.toIso8601String()} -> ${w.end.toIso8601String()}');
+          }
+          EOF
+          dart run tool/ci_kozhli_debug.dart
+          rm -f tool/ci_kozhli_debug.dart
 
       - name: Run regression tests
         run: flutter test
