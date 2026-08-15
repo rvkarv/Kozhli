@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, fix/pure-dart-astronomy-master-alignment ]
   workflow_dispatch: {}
 
 jobs:
