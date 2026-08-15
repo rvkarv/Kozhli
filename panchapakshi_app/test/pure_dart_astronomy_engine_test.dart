@@ -17,6 +17,12 @@ void main() {
     }
   });
 
+  test('Rajahmundry Master Workbook Nakshatra boundary', () {
+    final expected = DateTime.utc(2026, 8, 14, 22, 13, 18, 742000);
+    final actual = PureDartAstronomyEngine.boundaryNear(expected, 11);
+    expect(actual.difference(expected).inMilliseconds.abs(), lessThanOrEqualTo(2000));
+  });
+
   test('Lahiri conversion is deterministic and normalized', () {
     final jd = DateTime.utc(2026, 8, 15, 12).millisecondsSinceEpoch / 86400000 + 2440587.5;
     final result = PureDartAstronomyEngine.siderealLongitude(150.0, jd);
