@@ -4,20 +4,22 @@ import 'dart:math' as math;
 ///
 /// This module deliberately separates astronomy from Panchapakshi rules:
 /// Sun/Moon positions are converted to sidereal Lahiri longitude, while
-/// Nakshatra boundaries are found by time-domain root search.  Pada timing is
+/// Nakshatra boundaries are found by time-domain root search. Pada timing is
 /// then derived from the actual Nakshatra interval, matching the Master
 /// Workbook methodology.
 class PureDartAstronomyEngine {
   static const double _deg = math.pi / 180.0;
   static const double _rad = 180.0 / math.pi;
 
-  /// Mean Lahiri ayanamsa approximation, retained as a deterministic fallback
-  /// so the app has no ephemeris/license dependency.  The APP's existing
-  /// astronomical constants can be substituted here without changing the
-  /// boundary-search layer.
+  /// Lahiri ayanamsa polynomial, in degrees, for Julian centuries from J2000.
+  ///
+  /// The coefficients are kept local so the production app has no ephemeris
+  /// binary or third-party astronomy runtime dependency. This is the same
+  /// deterministic sidereal correction used by the astronomy boundary layer.
   static double lahiriAyanamsa(double jd) {
     final t = (jd - 2451545.0) / 36525.0;
-    return (23.85675 + 1.396042 * t + 0.000308 * t * t) * _deg;
+    final degrees = 23.85675 + 1.396042 * t + 0.000308 * t * t;
+    return degrees * _deg;
   }
 
   /// Normalize an angle to 0..2pi.
@@ -36,7 +38,7 @@ class PureDartAstronomyEngine {
   static ({int index, double fraction}) nakshatraFromLongitude(
     double siderealLongitude,
   ) {
-    const span = 13.0 * math.pi / 180.0 + math.pi / 180.0 / 3.0;
+    const span = 2 * math.pi / 27.0;
     final x = norm(siderealLongitude);
     final raw = x / span;
     final index = raw.floor().clamp(0, 26);
@@ -52,7 +54,7 @@ class PureDartAstronomyEngine {
   }
 
   /// Find a boundary by bisection. `value` must be a continuous angular
-  /// quantity whose target is `target` in radians.  The caller supplies the
+  /// quantity whose target is `target` in radians. The caller supplies the
   /// Moon/Sun longitude calculation appropriate to the selected date.
   static double bisectBoundary({
     required double lowJd,
