@@ -71,11 +71,20 @@ class KozhliSuccessRules {
   }
 
   /// Returns KOZHLI success windows from one complete solar period.
-  /// The Panchapakshi rule-book activity grid is the source of truth for
-  /// bird/activity positions. Excel supplies the solar-period timings.
   ///
-  /// Day correction:   (actual ஜாமம் - 02:24:00) / 5
-  /// Night correction: (02:24:00 - actual ஜாமம்) / 5, applied as a reduction.
+  /// Source of truth:
+  ///   1. Panchapakshi rule-book activity grid determines which KOZHLI
+  ///      activity belongs to each ஜாமம்.
+  ///   2. The Master Excel workbook supplies the solar-period boundaries.
+  ///   3. Rule-book Table 4 supplies the standard activity minutes.
+  ///   4. Excel F7/F9 is the signed difference between the actual ஜாமம்
+  ///      and standard 02:24:00, divided by five.
+  ///
+  /// One signed formula is therefore used for both day and night:
+  ///   (actual ஜாமம் - 02:24:00) / 5
+  /// A longer day produces a positive correction; a shorter night produces
+  /// a negative correction. The correction is added directly to the
+  /// standard Table-4 activity duration, matching the Master Workbook.
   static List<KozhliSuccessWindow> windowsForPeriod({required DateTime periodStart, required DateTime periodEnd, required Paksham paksham, required DayNight dayNight, required int rulingWeekday, required bool paduDay}) {
     if (paduDay) return const <KozhliSuccessWindow>[];
 
@@ -83,7 +92,6 @@ class KozhliSuccessRules {
     if (totalMicros <= 0) return const <KozhliSuccessWindow>[];
 
     final jamamMicros = totalMicros ~/ 5;
-    final weightTable = PanchapakshiRules.minutesTableFor(paksham, dayNight);
     final result = <KozhliSuccessWindow>[];
 
     for (var jamam = 1; jamam <= 5; jamam++) {
@@ -101,8 +109,8 @@ class KozhliSuccessRules {
       final duration = _scaledActivityDuration(
         jamamMicros: jamamMicros,
         activity: activity,
+        paksham: paksham,
         dayNight: dayNight,
-        weightTable: weightTable,
       );
 
       result.add(KozhliSuccessWindow(
@@ -118,17 +126,56 @@ class KozhliSuccessRules {
     return result;
   }
 
-  static Duration _scaledActivityDuration({required int jamamMicros, required Thozhil activity, required DayNight dayNight, required Map<String, int> weightTable}) {
+  /// Rule-book Table 4 activity duration, kept explicit so presentation
+  /// localisation cannot affect the mathematical Future Prediction timing.
+  static int _table4Minutes(Paksham paksham, DayNight dayNight, Thozhil activity) {
+    if (paksham == Paksham.valarpirai) {
+      if (dayNight == DayNight.day) {
+        switch (activity) {
+          case Thozhil.oon: return 48;
+          case Thozhil.nadai: return 36;
+          case Thozhil.arasu: return 30;
+          case Thozhil.thuyil: return 18;
+          case Thozhil.saavu: return 12;
+        }
+      }
+      switch (activity) {
+        case Thozhil.oon: return 12;
+        case Thozhil.arasu: return 48;
+        case Thozhil.saavu: return 36;
+        case Thozhil.nadai: return 30;
+        case Thozhil.thuyil: return 18;
+      }
+    }
+
+    if (dayNight == DayNight.day) {
+      switch (activity) {
+        case Thozhil.oon: return 30;
+        case Thozhil.saavu: return 18;
+        case Thozhil.thuyil: return 12;
+        case Thozhil.arasu: return 48;
+        case Thozhil.nadai: return 36;
+      }
+    }
+    switch (activity) {
+      case Thozhil.oon: return 48;
+      case Thozhil.thuyil: return 36;
+      case Thozhil.nadai: return 30;
+      case Thozhil.saavu: return 18;
+      case Thozhil.arasu: return 12;
+    }
+  }
+
+  static Duration _scaledActivityDuration({required int jamamMicros, required Thozhil activity, required Paksham paksham, required DayNight dayNight}) {
     const standardJamamMicros = 144 * 60 * 1000000;
-    final difference = dayNight == DayNight.day
-        ? jamamMicros - standardJamamMicros
-        : standardJamamMicros - jamamMicros;
 
-    final signedCorrection = dayNight == DayNight.day
-        ? difference ~/ 5
-        : -(difference ~/ 5);
+    // Excel F7/F9 as one signed correction. This is positive for a longer
+    // daytime ஜாமம் and negative for a shorter nighttime ஜாமம்.
+    final excelCorrection = (jamamMicros - standardJamamMicros) ~/ 5;
+    final baseMinutes = _table4Minutes(paksham, dayNight, activity);
 
-    final baseMinutes = weightTable[activity.tamil] ?? 0;
-    return Duration(microseconds: baseMinutes * 60 * 1000000 + signedCorrection);
+    return Duration(
+      microseconds: baseMinutes * 60 * 1000000 + excelCorrection,
+    );
   }
 }
