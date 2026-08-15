@@ -22,6 +22,14 @@ jobs:
       - name: Generate native Android project
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
+      - name: Verify regression source after Flutter project generation
+        run: |
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "KOZHLI TEST SHA256=$(sha256sum test/kozhli_success_windows_test.dart)"
+          echo "KOZHLI RULE SHA256=$(sha256sum lib/core/kozhli_success_rules.dart)"
+          echo "Expected timing markers present in test:"
+          grep -n "06:35:48\|06:49:29\|20:44:35\|20:55:15" test/kozhli_success_windows_test.dart || true
+
       - name: Add KOZHLI launcher icon and app label
         run: |
           mkdir -p android/app/src/main/res/drawable
