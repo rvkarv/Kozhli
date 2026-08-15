@@ -12,8 +12,8 @@ void main() {
 
     final padaLength = (end - start) / 4.0;
     for (var i = 0; i < 4; i++) {
-      expect(padas[i].startJd, closeTo(start + i * padaLength, 1e-12));
-      expect(padas[i].endJd, closeTo(start + (i + 1) * padaLength, 1e-12));
+      expect(padas[i].$1, closeTo(start + i * padaLength, 1e-12));
+      expect(padas[i].$2, closeTo(start + (i + 1) * padaLength, 1e-12));
     }
   });
 
