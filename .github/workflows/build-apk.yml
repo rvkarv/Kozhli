@@ -33,10 +33,7 @@ jobs:
           flutter-version: 3.32.0
           channel: stable
 
-      - name: Generate native Android project
-        run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
-
-      - name: Verify authoritative Master Workbook regression source
+      - name: Verify authoritative regression source
         shell: bash
         run: |
           set -euo pipefail
@@ -51,26 +48,36 @@ jobs:
           fi
           grep -nF '21, 56, 12, 884000' "$file"
 
-      - name: Add CI time and environment diagnostics
+      - name: Clean Flutter state before regression
+        run: |
+          set -euo pipefail
+          rm -rf .dart_tool build
+          find . -type f \( -name '*.dill' -o -name '*.kernel' \) -delete
+          flutter pub get
+
+      - name: Verify test source immediately before execution
         shell: bash
         run: |
-          set -euxo pipefail
-          echo '--- system time ---'
-          date -u '+%Y-%m-%dT%H:%M:%S.%N UTC'
-          date '+%Y-%m-%dT%H:%M:%S.%N %Z %z'
-          printf 'TZ=%s\n' "$TZ"
-          echo '--- repository ---'
-          git rev-parse HEAD
+          set -euo pipefail
+          file=test/master_workbook_alignment_final_regression_test.dart
+          echo '--- PRE-TEST SOURCE IDENTITY ---'
+          echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "GITHUB_SHA=$GITHUB_SHA"
-          echo '--- Flutter/Dart ---'
-          flutter --version
-          dart --version
-          echo '--- timezone ---'
-          timedatectl 2>/dev/null || true
-          echo '--- relevant environment ---'
-          env | sort | grep -E '^(TZ|DATE|TIME|LAT|LON|LOCATION|EPOCH)=' || true
-          echo '--- regression fixture lines ---'
-          grep -nE 'DateTime(\.utc|\.parse)|expected(Start|End|Pada)|21, 56, 12, 884000' test/master_workbook_alignment_final_regression_test.dart || true
+          echo "SHA256=$(sha256sum "$file")"
+          echo '--- EXPECTED TIMESTAMPS IN SOURCE ---'
+          grep -nE 'expected(Start|End|Pada)|DateTime\.utc\(2026, 8, (15|16)' "$file"
+          echo '--- WORKTREE STATUS ---'
+          git -C .. status --short
+          echo '--- FILE CONTENT ---'
+          sed -n '1,90p' "$file"
+          echo '--- TEST PACKAGE INPUT ---'
+          flutter pub deps --style=compact | head -80
+
+      - name: Run authoritative Master Workbook Moon regression
+        run: flutter test --no-pub test/master_workbook_alignment_final_regression_test.dart --reporter expanded
+
+      - name: Generate native Android project after regression passes
+        run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
       - name: Add KOZHLI launcher icon and app label
         run: |
@@ -88,36 +95,7 @@ jobs:
           MANIFEST=android/app/src/main/AndroidManifest.xml
           sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>#" "$MANIFEST"
 
-      - name: Clean generated Flutter state
-        run: |
-          flutter clean
-          rm -rf build .dart_tool
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Verify test source immediately before execution
-        shell: bash
-        run: |
-          set -euo pipefail
-          file=test/master_workbook_alignment_final_regression_test.dart
-          echo '--- PRE-TEST SOURCE IDENTITY ---'
-          echo "HEAD=$(git -C .. rev-parse HEAD)"
-          echo "GITHUB_SHA=$GITHUB_SHA"
-          echo "SHA256=$(sha256sum "$file")"
-          echo '--- EXPECTED TIMESTAMPS IN SOURCE ---'
-          grep -nE 'expected(Start|End|Pada)|DateTime\.utc\(2026, 8, (15|16)' "$file"
-          echo '--- WORKTREE STATUS ---'
-          git -C .. status --short
-          echo '--- FILE CONTENT ---'
-          sed -n '1,90p' "$file"
-          echo '--- DART TEST RESOLUTION ---'
-          dart --version
-
-      - name: Run authoritative Master Workbook Moon regression
-        run: flutter test --no-pub test/master_workbook_alignment_final_regression_test.dart --reporter expanded
-
-      - name: Run regression tests
+      - name: Run remaining regression tests
         run: flutter test
 
       - name: Build release APK
@@ -128,5 +106,3 @@ jobs:
         with:
           name: app-release-apk
           path: panchapakshi_app/build/app/outputs/flutter-apk/app-release.apk
-
-# CI trigger hardening: this workflow must execute the pushed commit SHA.
