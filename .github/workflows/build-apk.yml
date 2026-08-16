@@ -5,6 +5,11 @@ on:
     branches: [ main, master, fix/pure-dart-astronomy-master-alignment ]
   workflow_dispatch: {}
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,6 +24,7 @@ jobs:
 
       - name: Verify checkout is the triggering commit
         run: |
+          set -euo pipefail
           test "$(git -C .. rev-parse HEAD)" = "$GITHUB_SHA"
           echo "Verified checkout: $GITHUB_SHA"
 
@@ -31,29 +37,40 @@ jobs:
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
       - name: Verify authoritative Master Workbook regression source
+        shell: bash
         run: |
-          test -f test/master_workbook_alignment_final_regression_test.dart
+          set -euo pipefail
+          file=test/master_workbook_alignment_final_regression_test.dart
+          test -f "$file"
           echo "HEAD=$(git -C .. rev-parse HEAD)"
-          echo "REGRESSION SHA256=$(sha256sum test/master_workbook_alignment_final_regression_test.dart)"
-          ! grep -qE '22:10:56|22:25:40' test/master_workbook_alignment_final_regression_test.dart
-          grep -q '21, 56, 12, 884000' test/master_workbook_alignment_final_regression_test.dart
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "REGRESSION SHA256=$(sha256sum "$file")"
+          if grep -nE '22:10:56|22:25:40' "$file"; then
+            echo "::error::Stale runtime expectation found in $file"
+            exit 1
+          fi
+          grep -nF '21, 56, 12, 884000' "$file"
 
       - name: Add CI time and environment diagnostics
+        shell: bash
         run: |
+          set -euxo pipefail
           echo '--- system time ---'
-          date -u
-          date
-          printf 'TZ=%s\n' "${TZ:-<unset>}"
+          date -u '+%Y-%m-%dT%H:%M:%S.%N UTC'
+          date '+%Y-%m-%dT%H:%M:%S.%N %Z %z'
+          printf 'TZ=%s\n' "$TZ"
           echo '--- repository ---'
-          git -C .. rev-parse HEAD
+          git rev-parse HEAD
           echo "GITHUB_SHA=$GITHUB_SHA"
           echo '--- Flutter/Dart ---'
           flutter --version
           dart --version
+          echo '--- timezone ---'
+          timedatectl 2>/dev/null || true
           echo '--- relevant environment ---'
           env | sort | grep -E '^(TZ|DATE|TIME|LAT|LON|LOCATION|EPOCH)=' || true
           echo '--- regression fixture lines ---'
-          grep -nE 'DateTime\.utc|expected(Start|End|Pada)' test/master_workbook_alignment_final_regression_test.dart
+          grep -nE 'DateTime(\.utc|\.parse)|expected(Start|End|Pada)|21, 56, 12, 884000' test/master_workbook_alignment_final_regression_test.dart || true
 
       - name: Add KOZHLI launcher icon and app label
         run: |
