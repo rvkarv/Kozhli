@@ -76,3 +76,5 @@ jobs:
         with:
           name: app-release-apk
           path: panchapakshi_app/build/app/outputs/flutter-apk/app-release.apk
+
+# CI trigger hardening: this workflow must execute the pushed commit SHA.
