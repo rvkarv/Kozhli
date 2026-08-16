@@ -38,6 +38,23 @@ jobs:
           ! grep -qE '22:10:56|22:25:40' test/master_workbook_alignment_final_regression_test.dart
           grep -q '21, 56, 12, 884000' test/master_workbook_alignment_final_regression_test.dart
 
+      - name: Add CI time and environment diagnostics
+        run: |
+          echo '--- system time ---'
+          date -u
+          date
+          printf 'TZ=%s\n' "${TZ:-<unset>}"
+          echo '--- repository ---'
+          git -C .. rev-parse HEAD
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo '--- Flutter/Dart ---'
+          flutter --version
+          dart --version
+          echo '--- relevant environment ---'
+          env | sort | grep -E '^(TZ|DATE|TIME|LAT|LON|LOCATION|EPOCH)=' || true
+          echo '--- regression fixture lines ---'
+          grep -nE 'DateTime\.utc|expected(Start|End|Pada)' test/master_workbook_alignment_final_regression_test.dart
+
       - name: Add KOZHLI launcher icon and app label
         run: |
           mkdir -p android/app/src/main/res/drawable
