@@ -96,6 +96,24 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Verify test source immediately before execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=test/master_workbook_alignment_final_regression_test.dart
+          echo '--- PRE-TEST SOURCE IDENTITY ---'
+          echo "HEAD=$(git -C .. rev-parse HEAD)"
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "SHA256=$(sha256sum "$file")"
+          echo '--- EXPECTED TIMESTAMPS IN SOURCE ---'
+          grep -nE 'expected(Start|End|Pada)|DateTime\.utc\(2026, 8, (15|16)' "$file"
+          echo '--- WORKTREE STATUS ---'
+          git -C .. status --short
+          echo '--- FILE CONTENT ---'
+          sed -n '1,90p' "$file"
+          echo '--- DART TEST RESOLUTION ---'
+          dart --version
+
       - name: Run authoritative Master Workbook Moon regression
         run: flutter test --no-pub test/master_workbook_alignment_final_regression_test.dart --reporter expanded
 
