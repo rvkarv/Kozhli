@@ -100,13 +100,17 @@ jobs:
         run: |
           set -euo pipefail
           source=test/master_workbook_alignment_final_regression_test.dart
-          isolated=test/master_workbook_alignment_final_regression_isolated_test.dart
+          isolated="test/master_workbook_alignment_final_regression_isolated_${GITHUB_SHA}.dart"
+          rm -rf .dart_tool/build build/test_cache
+          rm -f test/master_workbook_alignment_final_regression_isolated_test.dart
           cp "$source" "$isolated"
           trap 'rm -f "$isolated"' EXIT
-          echo '--- ISOLATED SOURCE SHA256 ---'
-          sha256sum "$isolated"
+          echo '--- SOURCE AND ISOLATED SHA256 ---'
+          sha256sum "$source" "$isolated"
           echo '--- ISOLATED EXPECTATIONS ---'
           grep -nE 'expected(Start|End|Pada)|DateTime\.utc\(2026, 8, (15|16)' "$isolated"
+          echo '--- ISOLATED FILE CONTENT ---'
+          sed -n '1,90p' "$isolated"
           flutter test --no-pub "$isolated" --reporter expanded
 
       - name: Generate native Android project after regression passes
