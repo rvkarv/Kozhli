@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
+import 'package:panchapakshi_app/core/nakshatra_calculator.dart';
 
 // Authoritative Master Workbook regression for Rajahmundry, 16-Aug-2026.
 // Values are transcribed from the latest refreshed Workbook, in UTC.
@@ -9,8 +10,6 @@ void main() {
       DateTime.utc(2026, 8, 16, 4, 30),
     );
 
-    // Use ISO-8601 UTC strings so the Workbook's millisecond precision cannot
-    // be confused with DateTime.utc's separate millisecond/microsecond slots.
     final expectedStartUtc =
         DateTime.parse('2026-08-15T21:56:12.884Z');
     final expectedEndUtc =
@@ -19,6 +18,24 @@ void main() {
         DateTime.parse('2026-08-16T03:58:26.726Z');
     final expectedPadaEndUtc =
         DateTime.parse('2026-08-16T10:03:21.647Z');
+
+    final diagnosticExpectedEnd = expectedEndUtc;
+    final diagnosticActualEnd = window.endUtc;
+    final expectedCalc = NakshatraCalculator.computeCurrent(diagnosticExpectedEnd);
+    final actualCalc = NakshatraCalculator.computeCurrent(diagnosticActualEnd);
+    print('--- LUNAR END-BOUNDARY DIAGNOSTIC ---');
+    print('expectedEndUtc=${diagnosticExpectedEnd.toIso8601String()}');
+    print('actualEndUtc=${diagnosticActualEnd.toIso8601String()}');
+    print('expectedEnd tropicalLongitude=${expectedCalc.tropicalLongitude}');
+    print('expectedEnd ayanamsa=${expectedCalc.ayanamsa}');
+    print('expectedEnd siderealLongitude=${expectedCalc.siderealLongitude}');
+    print('expectedEnd nakshatra=${expectedCalc.nakshatra}');
+    print('actualEnd tropicalLongitude=${actualCalc.tropicalLongitude}');
+    print('actualEnd ayanamsa=${actualCalc.ayanamsa}');
+    print('actualEnd siderealLongitude=${actualCalc.siderealLongitude}');
+    print('actualEnd nakshatra=${actualCalc.nakshatra}');
+    print('siderealDeltaArcsec=${(actualCalc.siderealLongitude - expectedCalc.siderealLongitude) * 3600.0}');
+    print('boundaryArcsecFromExpected=${(173.33333333333334 - expectedCalc.siderealLongitude) * 3600.0}');
 
     _logTimestamp('actual.startUtc', window.startUtc);
     _logTimestamp('expected.startUtc', expectedStartUtc);
