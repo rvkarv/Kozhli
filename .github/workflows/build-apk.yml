@@ -24,10 +24,10 @@ jobs:
 
       - name: Restore Master Workbook regression source
         run: |
-          git checkout HEAD -- test/master_workbook_moon_regression_v2_test.dart
-          test -f test/master_workbook_moon_regression_v2_test.dart
+          git checkout HEAD -- test/master_workbook_alignment_final_regression_test.dart
+          test -f test/master_workbook_alignment_final_regression_test.dart
           echo "HEAD=$(git -C .. rev-parse HEAD)"
-          echo "MASTER WORKBOOK MOON V2 TEST SHA256=$(sha256sum test/master_workbook_moon_regression_v2_test.dart)"
+          echo "MASTER WORKBOOK FINAL MOON TEST SHA256=$(sha256sum test/master_workbook_alignment_final_regression_test.dart)"
 
       - name: Add KOZHLI launcher icon and app label
         run: |
@@ -63,10 +63,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run fresh Master Workbook Moon regression test in isolation
+      - name: Run final Master Workbook Moon regression in isolation
         run: |
           rm -rf build/test_cache
-          flutter test --no-pub test/master_workbook_moon_regression_v2_test.dart --reporter expanded
+          flutter test --no-pub test/master_workbook_alignment_final_regression_test.dart --reporter expanded
 
       - name: Isolated KOZHLI calculation check
         run: |
