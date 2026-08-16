@@ -49,11 +49,20 @@ jobs:
           grep -nF '21, 56, 12, 884000' "$file"
 
       - name: Clean Flutter state before regression
+        shell: bash
         run: |
           set -euo pipefail
           rm -rf .dart_tool build
           find . -type f \( -name '*.dill' -o -name '*.kernel' \) -delete
-          flutter pub get
+          echo '--- FLUTTER/DART VERSION ---'
+          flutter --version
+          dart --version
+          echo '--- PUB CACHE ---'
+          dart pub cache list 2>&1 | head -80 || true
+          echo '--- PUBSPEC ---'
+          sed -n '1,220p' pubspec.yaml
+          echo '--- PUB GET ---'
+          flutter pub get --verbose
 
       - name: Verify test source immediately before execution
         shell: bash
