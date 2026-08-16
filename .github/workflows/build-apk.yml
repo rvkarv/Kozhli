@@ -13,6 +13,14 @@ jobs:
         working-directory: panchapakshi_app
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify checkout is the triggering commit
+        run: |
+          test "$(git -C .. rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "Verified checkout: $GITHUB_SHA"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -28,6 +36,7 @@ jobs:
           echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "REGRESSION SHA256=$(sha256sum test/master_workbook_alignment_final_regression_test.dart)"
           ! grep -qE '22:10:56|22:25:40' test/master_workbook_alignment_final_regression_test.dart
+          grep -q '21, 56, 12, 884000' test/master_workbook_alignment_final_regression_test.dart
 
       - name: Add KOZHLI launcher icon and app label
         run: |
