@@ -22,9 +22,10 @@ jobs:
       - name: Generate native Android project
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
 
-      - name: Restore Master Workbook regression source
+      # IMPORTANT: Do not restore/overwrite the Master Workbook regression source here.
+      # The regression file committed on this branch is the authoritative source.
+      - name: Verify Master Workbook regression source
         run: |
-          git checkout HEAD -- test/master_workbook_alignment_final_regression_test.dart
           test -f test/master_workbook_alignment_final_regression_test.dart
           echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "MASTER WORKBOOK FINAL MOON TEST SHA256=$(sha256sum test/master_workbook_alignment_final_regression_test.dart)"
