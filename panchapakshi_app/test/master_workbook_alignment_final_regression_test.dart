@@ -5,7 +5,6 @@ import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
 // Values are transcribed from the latest refreshed Workbook, in UTC.
 void main() {
   test('Master Workbook: Rajahmundry Hasta/Pada 2 boundaries', () {
-    // 10:00 IST = 04:30 UTC, safely inside Hasta Pada 2.
     final window = MoonNakshatraWindow.forUtc(
       DateTime.utc(2026, 8, 16, 4, 30),
     );
