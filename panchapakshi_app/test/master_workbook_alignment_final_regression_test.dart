@@ -18,6 +18,15 @@ void main() {
     final expectedPadaEndUtc =
         DateTime.utc(2026, 8, 16, 10, 3, 21, 647000);
 
+    _logTimestamp('actual.startUtc', window.startUtc);
+    _logTimestamp('expected.startUtc', expectedStartUtc);
+    _logTimestamp('actual.endUtc', window.endUtc);
+    _logTimestamp('expected.endUtc', expectedEndUtc);
+    _logTimestamp('actual.padaStartUtc', window.padaStartUtc);
+    _logTimestamp('expected.padaStartUtc', expectedPadaStartUtc);
+    _logTimestamp('actual.padaEndUtc', window.padaEndUtc);
+    _logTimestamp('expected.padaEndUtc', expectedPadaEndUtc);
+
     _near(window.startUtc, expectedStartUtc);
     _near(window.endUtc, expectedEndUtc);
     _near(window.padaStartUtc, expectedPadaStartUtc);
@@ -25,11 +34,30 @@ void main() {
   });
 }
 
+void _logTimestamp(String label, DateTime value) {
+  print(
+    '$label: iso=${value.toIso8601String()} '
+    'isUtc=${value.isUtc} '
+    'offset=${value.timeZoneOffset} '
+    'micros=${value.microsecondsSinceEpoch}',
+  );
+}
+
 void _near(DateTime actual, DateTime expected) {
-  final difference = actual.difference(expected).abs();
+  final actualUtc = actual.toUtc();
+  final expectedUtc = expected.toUtc();
+  final deltaMicros =
+      actualUtc.microsecondsSinceEpoch - expectedUtc.microsecondsSinceEpoch;
+  print(
+    'deltaMicros=$deltaMicros '
+    'deltaSeconds=${deltaMicros / Duration.microsecondsPerSecond}',
+  );
+  final difference = actualUtc.difference(expectedUtc).abs();
   expect(
     difference,
     lessThanOrEqualTo(const Duration(seconds: 2)),
-    reason: 'Expected $expected ±2 seconds; got $actual (difference $difference)',
+    reason:
+        'Expected $expectedUtc ±2 seconds; got $actualUtc '
+        '(difference $difference; deltaMicros=$deltaMicros)',
   );
 }
