@@ -19,23 +19,32 @@ void main() {
     final expectedPadaEndUtc =
         DateTime.parse('2026-08-16T10:03:21.647Z');
 
-    final diagnosticExpectedEnd = expectedEndUtc;
-    final diagnosticActualEnd = window.endUtc;
-    final expectedCalc = NakshatraCalculator.computeCurrent(diagnosticExpectedEnd);
-    final actualCalc = NakshatraCalculator.computeCurrent(diagnosticActualEnd);
+    // Diagnostic only: expose the exact longitude values already produced by
+    // the production calculator at the Workbook boundary and at the runtime
+    // boundary. No alternative astronomy calculation is introduced here.
+    final expectedCalc = NakshatraCalculator.computeCurrent(expectedEndUtc);
+    final actualCalc = NakshatraCalculator.computeCurrent(window.endUtc);
     print('--- LUNAR END-BOUNDARY DIAGNOSTIC ---');
-    print('expectedEndUtc=${diagnosticExpectedEnd.toIso8601String()}');
-    print('actualEndUtc=${diagnosticActualEnd.toIso8601String()}');
+    print('expectedEndUtc=${expectedEndUtc.toIso8601String()}');
+    print('actualEndUtc=${window.endUtc.toIso8601String()}');
     print('expectedEnd tropicalLongitude=${expectedCalc.tropicalLongitude}');
     print('expectedEnd ayanamsa=${expectedCalc.ayanamsa}');
     print('expectedEnd siderealLongitude=${expectedCalc.siderealLongitude}');
-    print('expectedEnd nakshatra=${expectedCalc.nakshatra}');
+    print('expectedEnd nakshatra=${expectedCalc.nakshatraName}');
+    print('expectedEnd pada=${expectedCalc.pada}');
     print('actualEnd tropicalLongitude=${actualCalc.tropicalLongitude}');
     print('actualEnd ayanamsa=${actualCalc.ayanamsa}');
     print('actualEnd siderealLongitude=${actualCalc.siderealLongitude}');
-    print('actualEnd nakshatra=${actualCalc.nakshatra}');
-    print('siderealDeltaArcsec=${(actualCalc.siderealLongitude - expectedCalc.siderealLongitude) * 3600.0}');
-    print('boundaryArcsecFromExpected=${(173.33333333333334 - expectedCalc.siderealLongitude) * 3600.0}');
+    print('actualEnd nakshatra=${actualCalc.nakshatraName}');
+    print('actualEnd pada=${actualCalc.pada}');
+    print(
+      'siderealDeltaArcsec='
+      '${(actualCalc.siderealLongitude - expectedCalc.siderealLongitude) * 3600.0}',
+    );
+    print(
+      'boundaryArcsecFromExpected='
+      '${(173.33333333333334 - expectedCalc.siderealLongitude) * 3600.0}',
+    );
 
     _logTimestamp('actual.startUtc', window.startUtc);
     _logTimestamp('expected.startUtc', expectedStartUtc);
