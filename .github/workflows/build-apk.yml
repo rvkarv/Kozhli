@@ -73,8 +73,19 @@ jobs:
           echo '--- TEST PACKAGE INPUT ---'
           flutter pub deps --style=compact | head -80
 
-      - name: Run authoritative Master Workbook Moon regression
-        run: flutter test --no-pub test/master_workbook_alignment_final_regression_test.dart --reporter expanded
+      - name: Run isolated authoritative Master Workbook regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=test/master_workbook_alignment_final_regression_test.dart
+          isolated=test/master_workbook_alignment_final_regression_isolated_test.dart
+          cp "$source" "$isolated"
+          trap 'rm -f "$isolated"' EXIT
+          echo '--- ISOLATED SOURCE SHA256 ---'
+          sha256sum "$isolated"
+          echo '--- ISOLATED EXPECTATIONS ---'
+          grep -nE 'expected(Start|End|Pada)|DateTime\.utc\(2026, 8, (15|16)' "$isolated"
+          flutter test --no-pub "$isolated" --reporter expanded
 
       - name: Generate native Android project after regression passes
         run: flutter create . --platforms=android --org com.panchapakshi.kozhi --project-name panchapakshi_kozhi
