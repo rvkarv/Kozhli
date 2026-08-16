@@ -2,38 +2,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
 import 'package:panchapakshi_app/core/nakshatra_calculator.dart';
 
-// Authoritative Master Workbook regression for Rajahmundry, 16-Aug-2026.
-// Values are transcribed from the latest refreshed Workbook, in UTC.
 void main() {
   test('Master Workbook: Rajahmundry Hasta/Pada 2 boundaries', () {
     final window = MoonNakshatraWindow.forUtc(
       DateTime.utc(2026, 8, 16, 4, 30),
     );
 
-    final expectedStartUtc =
-        DateTime.parse('2026-08-15T21:56:12.884Z');
-    final expectedEndUtc =
-        DateTime.parse('2026-08-16T22:21:04.425Z');
-    final expectedPadaStartUtc =
-        DateTime.parse('2026-08-16T03:58:26.726Z');
-    final expectedPadaEndUtc =
-        DateTime.parse('2026-08-16T10:03:21.647Z');
+    final expectedStartUtc = DateTime.parse('2026-08-15T21:56:12.884Z');
+    final expectedEndUtc = DateTime.parse('2026-08-16T22:21:04.425Z');
+    final expectedPadaStartUtc = DateTime.parse('2026-08-16T03:58:26.726Z');
+    final expectedPadaEndUtc = DateTime.parse('2026-08-16T10:03:21.647Z');
 
-    final expectedCalc = NakshatraCalculator.computeCurrent(expectedEndUtc);
-    final actualCalc = NakshatraCalculator.computeCurrent(window.endUtc);
-    print('--- LUNAR END-BOUNDARY DIAGNOSTIC ---');
-    print('expectedEndUtc=${expectedEndUtc.toIso8601String()}');
-    print('actualEndUtc=${window.endUtc.toIso8601String()}');
-    print('expectedEnd tropicalLongitude=${expectedCalc.tropicalLongitude}');
-    print('expectedEnd ayanamsa=${expectedCalc.ayanamsa}');
-    print('expectedEnd siderealLongitude=${expectedCalc.siderealLongitude}');
-    print('expectedEnd nakshatra=${expectedCalc.nakshatraIndex1to27}');
-    print('actualEnd tropicalLongitude=${actualCalc.tropicalLongitude}');
-    print('actualEnd ayanamsa=${actualCalc.ayanamsa}');
-    print('actualEnd siderealLongitude=${actualCalc.siderealLongitude}');
-    print('actualEnd nakshatra=${actualCalc.nakshatraIndex1to27}');
-    print('siderealDeltaArcsec=${(actualCalc.siderealLongitude - expectedCalc.siderealLongitude) * 3600.0}');
-    print('boundaryArcsecFromExpected=${(173.33333333333334 - expectedCalc.siderealLongitude) * 3600.0}');
+    print('--- WORKBOOK BOUNDARY LONGITUDE DIAGNOSTICS ---');
+    _logCalc('expected.startUtc', expectedStartUtc);
+    _logCalc('expected.padaStartUtc', expectedPadaStartUtc);
+    _logCalc('expected.padaEndUtc', expectedPadaEndUtc);
+    _logCalc('expected.endUtc', expectedEndUtc);
 
     _logTimestamp('actual.startUtc', window.startUtc);
     _logTimestamp('expected.startUtc', expectedStartUtc);
@@ -49,6 +33,24 @@ void main() {
     _near(window.padaStartUtc, expectedPadaStartUtc);
     _near(window.padaEndUtc, expectedPadaEndUtc);
   });
+}
+
+void _logCalc(String label, DateTime utc) {
+  final calc = NakshatraCalculator.computeCurrent(utc);
+  final target = switch (calc.nakshatraIndex1to27) {
+    13 => 173.33333333333334,
+    14 => 173.33333333333334,
+    _ => double.nan,
+  };
+  print(
+    '$label: tropical=${calc.tropicalLongitude} '
+    'ayanamsa=${calc.ayanamsa} '
+    'sidereal=${calc.siderealLongitude} '
+    'nakshatra=${calc.nakshatraIndex1to27} '
+    'pada=${calc.pada} '
+    'arcsecFromHastaEnd=${(173.33333333333334 - calc.siderealLongitude) * 3600.0} '
+    'arcsecFromBoundary=${(calc.siderealLongitude - target) * 3600.0}',
+  );
 }
 
 void _logTimestamp(String label, DateTime value) {
