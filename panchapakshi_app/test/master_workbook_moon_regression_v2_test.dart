@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
 import 'package:panchapakshi_app/core/nakshatra_calculator.dart';
 
+// Authoritative V2 Master Workbook fixture. Keep these UTC values unchanged
+// unless the source workbook itself is refreshed.
 void main() {
   test('Master Workbook V2: Rajahmundry 15-Aug-2026 Uttara Phalguni Pada 2', () {
     final probe = DateTime.utc(2026, 8, 15, 6, 46);
@@ -42,6 +44,10 @@ void _log(String label, DateTime actual, DateTime expected) {
 }
 
 void _near(DateTime actual, DateTime expected) {
-  final difference = actual.difference(expected).abs();
-  expect(difference, lessThanOrEqualTo(const Duration(seconds: 2)), reason: 'Master Workbook expected $expected ±2 seconds; got $actual (difference $difference)');
+  final difference = actual.toUtc().difference(expected.toUtc()).abs();
+  expect(
+    difference,
+    lessThanOrEqualTo(const Duration(seconds: 2)),
+    reason: 'Master Workbook expected $expected ±2 seconds; got $actual (difference $difference)',
+  );
 }
