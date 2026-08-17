@@ -51,14 +51,6 @@ jobs:
           cat > android/app/src/main/res/drawable/ic_kozhli.xml <<'EOF'
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
               <path android:fillColor="#171717" android:pathData="M54,4A50,50 0,1 0,54 104A50,50 0,1 0,54 4"/>
-              <path android:fillColor="#E8A83A" android:pathData="M54,9A45,45 0,1 0,54 99A45,45 0,1 0,54 9M54,14A40,40 0,1 1,54 94A40,40 0,1 1,54 14"/>
-              <path android:fillColor="#E09935" android:pathData="M49,51C35,43 26,50 25,62C24,76 38,84 53,80C65,77 72,67 70,55C68,44 58,38 49,39C43,30 48,20 57,20C66,20 71,28 68,37C75,37 82,41 87,47L96,52L87,57C82,58 77,57 72,54C74,66 68,78 56,84C50,87 43,87 38,84L34,94L29,94L33,82C23,76 20,65 24,55C28,45 38,41 49,51"/>
-              <path android:fillColor="#4E9654" android:pathData="M42,45C31,35 20,39 18,49C29,47 37,53 42,60C37,48 29,42 22,40C31,33 41,36 48,43"/>
-              <path android:fillColor="#D8323E" android:pathData="M57,20C53,14 57,8 62,12C65,6 72,10 70,17C77,14 80,21 74,25C68,28 61,26 57,20"/>
-              <path android:fillColor="#F0B83F" android:pathData="M78,39L101,46L78,52Z"/>
-              <path android:fillColor="#171717" android:pathData="M72,34A3.5,3.5 0,1 0,72 41A3.5,3.5 0,1 0,72 34"/>
-              <path android:fillColor="#E8A83A" android:pathData="M46,80L42,99L48,99L53,82M61,80L64,99L70,99L66,78"/>
-              <path android:fillColor="#E8A83A" android:pathData="M43,95L32,100L45,100M65,95L77,100L63,100"/>
           </vector>
           EOF
           MANIFEST=android/app/src/main/AndroidManifest.xml
@@ -114,12 +106,19 @@ jobs:
           source=test/master_workbook_moon_regression_v2_test.dart
           isolated="test/ci_v2_${GITHUB_SHA}.dart"
           test -f "$source"
+          # Re-read the tracked file from the triggering commit immediately before compilation.
+          git checkout -- "$source"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           cp "$source" "$isolated"
           trap 'rm -f "$isolated"' EXIT
-          echo '--- V2 SOURCE IDENTITY ---'
+          echo '--- V2 SOURCE IDENTITY AFTER HARD RESET ---'
           git -C .. rev-parse HEAD
           sha256sum "$source" "$isolated"
           sed -n '1,120p' "$isolated"
+          grep -nF 'DateTime.utc(2026, 8, 14, 22, 13, 18, 742000)' "$isolated"
+          grep -nF 'DateTime.utc(2026, 8, 15, 21, 56, 3, 156000)' "$isolated"
+          grep -nF 'DateTime.utc(2026, 8, 15, 4, 5, 12, 797000)' "$isolated"
+          grep -nF 'DateTime.utc(2026, 8, 15, 9, 59, 37, 906000)' "$isolated"
           if grep -nE '22:25:40|22:21:04|04:18:29|10:14:43' "$isolated"; then
             echo '::error::Unexpected stale V2 fixture detected in checked-out source'
             exit 1
