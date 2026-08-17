@@ -7,11 +7,27 @@ void main() {
       DateTime.utc(2026, 8, 15, 6, 46),
     );
 
-    _near(window.startUtc, DateTime.utc(2026, 8, 14, 22, 13, 18, 742000));
-    _near(window.endUtc, DateTime.utc(2026, 8, 15, 21, 56, 3, 156000));
-    _near(window.padaStartUtc, DateTime.utc(2026, 8, 15, 4, 5, 12, 797000));
-    _near(window.padaEndUtc, DateTime.utc(2026, 8, 15, 9, 59, 37, 906000));
+    final expectedStart = DateTime.utc(2026, 8, 14, 22, 13, 18, 742000);
+    final expectedEnd = DateTime.utc(2026, 8, 15, 21, 56, 3, 156000);
+    final expectedPadaStart = DateTime.utc(2026, 8, 15, 4, 5, 12, 797000);
+    final expectedPadaEnd = DateTime.utc(2026, 8, 15, 9, 59, 37, 906000);
+
+    _log('start', window.startUtc, expectedStart);
+    _log('end', window.endUtc, expectedEnd);
+    _log('padaStart', window.padaStartUtc, expectedPadaStart);
+    _log('padaEnd', window.padaEndUtc, expectedPadaEnd);
+
+    _near(window.startUtc, expectedStart);
+    _near(window.endUtc, expectedEnd);
+    _near(window.padaStartUtc, expectedPadaStart);
+    _near(window.padaEndUtc, expectedPadaEnd);
   });
+}
+
+void _log(String label, DateTime actual, DateTime expected) {
+  final deltaMicros = actual.toUtc().microsecondsSinceEpoch -
+      expected.toUtc().microsecondsSinceEpoch;
+  print('$label actual=${actual.toIso8601String()} expected=${expected.toIso8601String()} deltaSeconds=${deltaMicros / Duration.microsecondsPerSecond}');
 }
 
 void _near(DateTime actual, DateTime expected) {
