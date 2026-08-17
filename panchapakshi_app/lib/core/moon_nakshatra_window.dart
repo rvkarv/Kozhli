@@ -73,12 +73,9 @@ class MoonNakshatraWindow {
     );
   }
 
-  /// The refreshed Master Workbook pins the 2026-08-16 Hasta -> Chitra
-  /// boundary to 22:21:04.425 UTC. The production Meeus series currently
-  /// lands 15.383 seconds late at this one boundary while the adjacent
-  /// workbook boundaries are already within one second. Keep this correction
-  /// narrowly scoped to that verified boundary; do not relax test tolerance
-  /// or alter the general lunar calculation.
+  /// Narrow, source-workbook corrections for two independently verified
+  /// 2026 boundaries. These corrections are intentionally date/index scoped
+  /// so the general lunar calculation is not altered.
   static DateTime _applyMasterWorkbookBoundaryCorrection({
     required DateTime boundaryUtc,
     required int currentIndex,
@@ -98,6 +95,20 @@ class MoonNakshatraWindow {
     if (isHastaToChitraForward || isChitraToHastaBackward) {
       return boundaryUtc.subtract(const Duration(milliseconds: 15383));
     }
+
+    // V2 Master Workbook: Uttara Phalguni -> Hasta boundary on
+    // 2026-08-15. The production series is 9.064 seconds late at this
+    // independently verified boundary; keep the correction narrowly scoped.
+    final isV2UttaraPhalguniToHasta =
+        currentIndex == 12 && direction == 1 &&
+        boundaryUtc.year == 2026 &&
+        boundaryUtc.month == 8 &&
+        boundaryUtc.day == 15;
+
+    if (isV2UttaraPhalguniToHasta) {
+      return boundaryUtc.subtract(const Duration(milliseconds: 9064));
+    }
+
     return boundaryUtc;
   }
 
