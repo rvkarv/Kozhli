@@ -42,6 +42,8 @@ jobs:
           test -f test/master_workbook_alignment_final_regression_test.dart
           echo "HEAD=$(git -C .. rev-parse HEAD)"
           echo "ALIGNMENT TEST SHA256=$(sha256sum test/master_workbook_alignment_final_regression_test.dart)"
+          echo "V2 TEST SHA256=$(sha256sum test/master_workbook_moon_regression_v2_test.dart)"
+          grep -nE 'DateTime\.utc\(2026, 8, 14|DateTime\.utc\(2026, 8, 15' test/master_workbook_moon_regression_v2_test.dart
 
       - name: Add KOZHLI launcher icon and app label
         run: |
@@ -105,6 +107,23 @@ jobs:
           rm -rf build/test_cache
           flutter test --no-pub "$file" --reporter expanded
 
+      - name: Verify V2 Master Workbook source and run it in isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=test/master_workbook_moon_regression_v2_test.dart
+          test -f "$file"
+          echo '--- V2 SOURCE IDENTITY ---'
+          git -C .. rev-parse HEAD
+          sha256sum "$file"
+          sed -n '1,120p' "$file"
+          if grep -nE '22:25:40|22:21:04|04:18:29|10:14:43' "$file"; then
+            echo '::error::Unexpected stale V2 fixture detected in checked-out source'
+            exit 1
+          fi
+          rm -rf build/test_cache .dart_tool/test
+          flutter test --no-pub "$file" --reporter expanded
+
       - name: Isolated KOZHLI calculation check
         shell: bash
         run: |
@@ -127,7 +146,9 @@ jobs:
           rm -f tool/ci_kozhli_debug.dart
 
       - name: Run regression tests
-        run: flutter test
+        run: |
+          rm -rf build/test_cache .dart_tool/test
+          flutter test
 
       - name: Build release APK
         run: flutter build apk --release
