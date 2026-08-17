@@ -104,25 +104,28 @@ jobs:
             echo '::error::Invalid/stale DateTime fixture detected'
             exit 1
           fi
-          rm -rf build/test_cache
+          rm -rf build/test_cache .dart_tool/test
           flutter test --no-pub "$file" --reporter expanded
 
       - name: Verify V2 Master Workbook source and run it in isolation
         shell: bash
         run: |
           set -euo pipefail
-          file=test/master_workbook_moon_regression_v2_test.dart
-          test -f "$file"
+          source=test/master_workbook_moon_regression_v2_test.dart
+          isolated="test/ci_v2_${GITHUB_SHA}.dart"
+          test -f "$source"
+          cp "$source" "$isolated"
+          trap 'rm -f "$isolated"' EXIT
           echo '--- V2 SOURCE IDENTITY ---'
           git -C .. rev-parse HEAD
-          sha256sum "$file"
-          sed -n '1,120p' "$file"
-          if grep -nE '22:25:40|22:21:04|04:18:29|10:14:43' "$file"; then
+          sha256sum "$source" "$isolated"
+          sed -n '1,120p' "$isolated"
+          if grep -nE '22:25:40|22:21:04|04:18:29|10:14:43' "$isolated"; then
             echo '::error::Unexpected stale V2 fixture detected in checked-out source'
             exit 1
           fi
           rm -rf build/test_cache .dart_tool/test
-          flutter test --no-pub "$file" --reporter expanded
+          flutter test --no-pub "$isolated" --reporter expanded
 
       - name: Isolated KOZHLI calculation check
         shell: bash
