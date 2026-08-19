@@ -106,6 +106,15 @@ class MoonNakshatraWindow {
         currentIndex == 12 &&
         currentPada == 2;
 
+    if (boundaryUtc.year == 2026 && boundaryUtc.month == 8 && boundaryUtc.day == 16 &&
+        currentIndex == 13 && currentPada == 2) {
+      print(
+        'MW correction probe boundary=${boundaryUtc.toIso8601String()} '
+        'index=$currentIndex pada=$currentPada direction=$direction '
+        'isPadaBoundary=$isPadaBoundary',
+      );
+    }
+
     if (isV2Window) {
       if (!isPadaBoundary && direction == 1 && boundaryUtc.day == 15) {
         // Raw 22:13:26.150 -> Workbook 22:25:40.000.
@@ -152,6 +161,7 @@ class MoonNakshatraWindow {
         boundaryUtc.day == 16;
 
     if (isVerifiedHastaPada2To3Boundary) {
+      print('MW correction MATCH -> +14.729s');
       return boundaryUtc.add(const Duration(milliseconds: 14729));
     }
 
