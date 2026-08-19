@@ -1,20 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:panchapakshi_app/core/moon_nakshatra_window.dart';
-import 'package:panchapakshi_app/core/nakshatra_calculator.dart';
 
 // Authoritative Master Workbook regression for Rajahmundry, 16-Aug-2026.
 // Values are transcribed from the latest refreshed Workbook, in UTC.
 void main() {
   test('Master Workbook: Rajahmundry Hasta/Pada 2 boundaries', () {
-    final probeUtc = DateTime.utc(2026, 8, 16, 4, 30);
-    final probeMoon = NakshatraCalculator.computeCurrent(probeUtc);
-    print(
-      'probe: index=${probeMoon.nakshatraIndex1to27} '
-      'pada=${probeMoon.pada} '
-      'siderealLongitude=${probeMoon.siderealLongitude}',
+    final window = MoonNakshatraWindow.forUtc(
+      DateTime.utc(2026, 8, 16, 4, 30),
     );
-
-    final window = MoonNakshatraWindow.forUtc(probeUtc);
 
     final expectedStartUtc =
         DateTime.parse('2026-08-15T21:56:12.884Z');
