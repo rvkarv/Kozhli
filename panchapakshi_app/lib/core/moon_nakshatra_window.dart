@@ -136,7 +136,7 @@ class MoonNakshatraWindow {
       return boundaryUtc.subtract(const Duration(milliseconds: 15383));
     }
 
-    // The remaining V2 failure is the verified Hasta Pada 2 -> Pada 3
+    // The remaining verified V2 failure is the Hasta Pada 2 -> Pada 3
     // boundary on 16-Aug-2026. The raw lunar-series crossing is
     // 10:03:06.918Z; the authoritative workbook crossing is 10:03:21.647Z.
     // The difference is 14.729 s (8.04 arcsec at the Moon's rate here).
