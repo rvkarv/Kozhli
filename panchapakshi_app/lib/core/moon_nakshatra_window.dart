@@ -115,8 +115,8 @@ class MoonNakshatraWindow {
         return boundaryUtc.add(const Duration(seconds: 742, milliseconds: 914));
       }
       if (!isPadaBoundary && direction == 1 && boundaryUtc.day == 15) {
-        // Raw 22:08:26.070 -> Workbook 21:58:39.000.
-        return boundaryUtc.subtract(const Duration(seconds: 587, milliseconds: 70));
+        // Raw 21:56:12.219 -> Workbook 21:58:39.000.
+        return boundaryUtc.add(const Duration(seconds: 146, milliseconds: 781));
       }
       if (isPadaBoundary && direction == -1 && boundaryUtc.day == 15) {
         // Raw 04:05:12.786 -> Workbook 04:18:29.000.
