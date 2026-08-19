@@ -145,3 +145,5 @@ jobs:
         with:
           name: app-release-apk
           path: panchapakshi_app/build/app/outputs/flutter-apk/app-release.apk
+
+# Trigger CI on main after manual-dispatch mobile UI troubleshooting.
