@@ -43,7 +43,7 @@ dependencies:
   lat_lng_to_timezone: ^0.2.0
 
   # Earth-centred JavaScript astronomy bridge
-  webview_flutter: ^4.14.1
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:
