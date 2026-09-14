@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html,body{background:#080808;color:#fff;margin:0;padding:0}</style>
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script>
+(function(){
+  const A = window.Astronomy;
+  const bodies = [
+    ["Sun","சூரியன்"],["Moon","சந்திரன்"],["Mercury","புதன்"],["Venus","சுக்கிரன்"],
+    ["Mars","செவ்வாய்"],["Jupiter","வியாழன்"],["Saturn","சனி"],
+    ["Uranus","யுரேனஸ்"],["Neptune","நெப்டியூன்"],["Pluto","புளூட்டோ"]
+  ];
+  function norm(x){ x%=360; return x<0?x+360:x; }
+  function angle(body,t){
+    const v=A.GeoVector(A.Body[body],t,true);
+    return norm(A.Ecliptic(v).elon);
+  }
+  function separation(t){
+    return norm(A.PairLongitude(A.Body.Moon,A.Body.Sun,t));
+  }
+  function findBoundary(iso,target,forward){
+    const baseDate=new Date(iso), base=A.MakeTime(baseDate), baseAngle=separation(base);
+    let lo=new Date(baseDate.getTime()+(forward?0:-3*86400000));
+    let hi=new Date(baseDate.getTime()+(forward?3*86400000:0));
+    const delta=forward?norm(target-baseAngle):-norm(baseAngle-target);
+    const goal=baseAngle+delta;
+    function unwrapped(d){
+      const x=separation(A.MakeTime(d));
+      return forward?baseAngle+norm(x-baseAngle):baseAngle-norm(baseAngle-x);
+    }
+    for(let i=0;i<50;i++){
+      const mid=new Date((lo.getTime()+hi.getTime())/2), u=unwrapped(mid);
+      if(forward){ if(u<goal) lo=mid; else hi=mid; }
+      else { if(u>goal) hi=mid; else lo=mid; }
+    }
+    return new Date((lo.getTime()+hi.getTime())/2).toISOString();
+  }
+  function tithiInfo(iso){
+    const d=new Date(iso), a=separation(A.MakeTime(d));
+    const raw=Math.floor(a/12)+1, number=a<180?raw:raw-15;
+    const names=["பிரதமை","துவிதியை","திரிதியை","சதுர்த்தி","பஞ்சமி","சஷ்டி","சப்தமி","அஷ்டமி","நவமி","தசமி","ஏகாதசி","துவாதசி","திரியோதசி","சதுர்தசி","பௌர்ணமி"];
+    const paksha=a<180?"வளர்பிறை":"தேய்பிறை";
+    const name=a<180?names[number-1]:(number===15?"அமாவாசை":names[number-1]);
+    const startTarget=Math.floor(a/12)*12, endTarget=(Math.floor(a/12)+1)*12;
+    return {number,name,pakshaTamil:paksha,startUtc:findBoundary(iso,startTarget,false),endUtc:findBoundary(iso,endTarget%360,true)};
+  }
+  function pakshiRows(){
+    return [
+      {day:"புதன்",valarpirai:"🐦காகம்",theipirai:"🦅வல்லூறு"},
+      {day:"வெள்ளி",valarpirai:"🦅வல்லூறு",theipirai:"🐔கோழி"},
+      {day:"செவ்வாய்",valarpirai:"🐔கோழி",theipirai:"🦉ஆந்தை"},
+      {day:"வியாழன்",valarpirai:"🦉ஆந்தை",theipirai:"🦚மயில்"},
+      {day:"சனி",valarpirai:"🦚மயில்",theipirai:"🐦காகம்"}
+    ];
+  }
+  function tithiPakshi(a){
+    const idx=a<180?Math.floor(a/12)+1:Math.floor(a/12)+1-15;
+    if(a<180){
+      const map=[
+        ["செவ்வாய்","செவ்வாய்","🐔கோழி","🦉ஆந்தை"],
+        ["சனி","சனி","🦚மயில்","🐦காகம்"],
+        ["வெள்ளி","வெள்ளி","🦅வல்லூறு","🐔கோழி"],
+        ["வியாழன்","வியாழன்","🦉ஆந்தை","🦚மயில்"],
+        ["புதன்","புதன்","🐦காகம்","🦅வல்லூறு"]
+      ]; return map[(idx-1)%5];
+    }
+    const map=[
+      ["செவ்வாய்","செவ்வாய்","🦉ஆந்தை","🐔கோழி"],
+      ["புதன்","புதன்","🦅வல்லூறு","🐦காகம்"],
+      ["வியாழன்","வியாழன்","🦚மயில்","🦉ஆந்தை"],
+      ["வெள்ளி","வெள்ளி","🐔கோழி","🦅வல்லூறு"],
+      ["சனி","சனி","🐦காகம்","🦚மயில்"]
+    ]; return map[(idx-1)%5];
+  }
+  window.earthViewSnapshot=function(iso){
+    const t=A.MakeTime(new Date(iso)), moon=A.EclipticGeoMoon(t), sun=angle("Sun",t);
+    const ti=tithiInfo(iso), tp=tithiPakshi(separation(t)), planets={};
+    for(const b of bodies){ planets[b[0]]=b[0]==="Moon"?norm(moon.elon):angle(b[0],t); }
+    return JSON.stringify({
+      moonLongitude:norm(moon.elon),sunLongitude:sun,angularSeparation:separation(t),
+      tithiNumber:ti.number,tithiName:ti.name,pakshaTamil:ti.pakshaTamil,
+      tithiStartUtc:ti.startUtc,tithiEndUtc:ti.endUtc,
+      tithiRulerDay:tp[0],tithiRulerPlanet:tp[1],adhikaraPakshi:tp[2],paduPakshi:tp[3],
+      planets:planets,fiveDayPakshi:pakshiRows()
+    });
+  };
+})();
+</script>
+</head><body></body></html>
